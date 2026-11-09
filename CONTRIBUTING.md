@@ -61,8 +61,9 @@ outgoing commits.
 ## CI and deployment status
 
 - GitHub Actions is **enabled** (owner decision, 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on every
-  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`), plus the `llm-gate` job when a PR
-  touches the LLM lane, the Makefile or the workflow. `make ci` runs the python and web jobs locally;
+  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). The `llm-gate` job runs on manual
+  dispatch only: its threshold is calibrated on Apple Metal, not on the runner's CPU backend
+  (`docs/LLM_RELEASE_LANE.md`). Run `make llm-gate` locally for prompt changes. `make ci` runs the python and web jobs locally;
   `make workflow-lint` checks the workflow file itself before you push.
 - Nothing is deployed. The AWS path in `infra/aws` is implemented and validated but not provisioned (see
   `docs/DEPLOYMENT_RUNBOOK.md`).

@@ -190,15 +190,18 @@ add(
 )
 add(
     "GitHub Actions CI execution",
+    "5 PR jobs passed on a GitHub-hosted runner: python (lint, mypy, fixtures with hash checks, contract, pytest, "
+    "chaos replay, demo), security (pip-audit, gitleaks, npm audit, Trivy fs), web, image (build, smoke test, "
+    "Trivy image), iac. llm-gate: champion 127/150 (84.7%) on the CPU backend vs 90% threshold calibrated on "
+    "Metal; made manual-dispatch only",
     None,
-    None,
-    ".github/workflows/ci.yml",
-    ".github/workflows/ci.yml",
+    "pull_request run of .github/workflows/ci.yml",
+    "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563",
     head(),
-    "workflow file",
-    "planned",
-    None,
-    "Actions disabled on the private repo (owner decision); same checks run via `make ci`",
+    "GitHub Actions run 42692611563 (PR #4)",
+    "verified",
+    {"runner": "ubuntu-24.04 GitHub-hosted"},
+    "Actions enabled 2026-11-09 (owner); repo public, standard runners free; python job ~21 min",
 )
 add(
     "Local Docker stack (gateway, web, simulated traffic, Prometheus, Grafana) up/down",

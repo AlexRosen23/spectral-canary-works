@@ -132,8 +132,15 @@ Recorded (`docs/evidence/llm/promptfoo/`, commit 3b5f0dc, Ollama 0.40.13): the c
 cases (92.7%, exit 0; its 11 failures are exactly its 11 missed escalations, matching the Python gate's 83.3% recall
 on 66 must-escalate cases); the regressed p3 prompt passes 111 (74.0%) and `promptfoo eval` exits 100.
 
-The CI job is defined in `.github/workflows/ci.yml` (`llm-gate`, path-filtered to prompt/bundle/policy/lane
-changes, Ollama as a service container); GitHub Actions stays disabled, so it was run locally and its output saved.
+**On GitHub (2026-11-09, after Actions was enabled).** The CI job (`llm-gate`, Ollama 0.40.13 as a service
+container pinned by digest) ran once on a pull request, on a GitHub-hosted runner. Same model manifest and layer
+digests, same Ollama version, prompt, params and seed, but Ollama's CPU backend (AMD EPYC, AVX-512) instead of
+Metal: the champion prompt scored **127/150 (84.7%)**, and all 23 failures were missed escalations (recall 65.2% vs
+83.3%). Greedy decoding is not bit-identical across compute backends, so the 90% threshold, calibrated on Metal,
+fails the accepted champion on CPU. The job is therefore manual-dispatch only (`-f llm_gate_threshold=<0-100>`),
+and `make llm-gate` on the build machine stays the gate. The fix that would make it a valid PR check is a relative
+gate: score the base and the PR prompt on the same runner and fail on the difference. Evidence:
+`docs/evidence/llm/promptfoo/triage-p2.github-cpu.*` (run 42692611563).
 
 ## Recorded run
 

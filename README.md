@@ -120,13 +120,13 @@ rollbacks it drives are real executions of this code.
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
 | OpenTofu `infra/local` (Docker provider) | Working, local | applied and destroyed against local Docker during the build; `fmt` + `validate` in CI |
 | OpenTofu `infra/aws` (ECR + one `t4g.micro`, SSM, IMDSv2, Budgets) | Partial: validated, **not provisioned** | `fmt` + `validate` only; `scripts/aws_deploy.sh` refuses to run without `SCW_CONFIRM_BILLABLE=yes`. $0 spent. Two documented, accepted Trivy findings (public IP, HTTPS egress) |
-| GitHub Actions CI (5 jobs + a path-filtered LLM gate) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
+| GitHub Actions CI (5 PR jobs; LLM gate on manual dispatch) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
 | Read-only contract for dashboards (`/health`, `/capabilities`, `/runs`) | Working | `make start` checked on 2026-11-09 (`/health` ok, `/runs` lists the runs); the owner's Constellation reads it |
 | **LLM lane:** prompt bundles as immutable, hashed, signed releasable units with the Ollama weights digest pinned | Working | `tests/test_llm_lane.py` (tampered prompt and changed weights digest both blocked) |
 | **LLM lane:** offline eval gate (150 gold cases × 3 seeded tries, code graders, pass^3, per-segment escalation recall, non-inferiority) | Working (rule-derived labels) | recorded run [`llm-demo-20261109-130256`](docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md): p3 and the qwen swap blocked; gold set checked by `make llm-gold` (rerun 2026-11-09) |
 | **LLM lane:** shadow + 10% canary with online code grading, paired McNemar, p95 latency and token-cost SLOs, input-drift trigger | Working (simulated alerts, real local model calls) | same recorded run: p2 promoted after 2 healthy windows; ctx4k rolled back on the latency SLO |
 | **LLM lane:** automatic rollback (same controller), 20 verification calls, generated postmortem | Working | [`postmortem-llm-rel-0004.md`](docs/evidence/llm/llm-demo-20261109-130256/postmortem-llm-rel-0004.md); `test_llm_release_story_in_process` (scripted test double) |
-| **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); TODO_LLMGATE |
+| **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so on GitHub the job is manual-only (see [Testing and CI](#testing-and-ci)) |
 | **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
 | LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
 | Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Not built | open finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
@@ -318,6 +318,7 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | CI had never actually run | the workflow wasn't valid YAML (an unquoted `:` in a step name), so GitHub couldn't read its triggers and refused `workflow_dispatch` | quoted in PR #3; PR #4 adds `make workflow-lint` (actionlint) so it can't recur |
 | First CI run: pip-audit failed | `uv export` listed the project itself, which isn't on PyPI | `--no-emit-project` (PR #4) |
 | First CI run: Trivy failed the image | 2 CRITICAL CVEs in Debian 12 with no fixed package (libsqlite3 CVE-2025-7458, zlib CVE-2023-45853) | base image moved to `python:3.12-slim-trixie` (Debian 13) (PR #4) |
+| LLM gate on GitHub: the champion prompt failed its own threshold | the 90% threshold was calibrated on Apple Metal; on the runner's CPU backend the same weights, Ollama, prompt and seed scored 84.7% | evidence saved, job made manual-dispatch only; a relative gate (base vs PR on the same runner) is the proposed fix (PR #4) |
 | Second CI run: Trivy's filesystem scan failed on misconfigurations | the web image relied on its base image's non-root user without saying so; the AWS path has a public-IP subnet and HTTPS egress to any address | `USER 101:101` in `web/Dockerfile`; the two AWS findings are documented accepted risks with a costed alternative (~$43/month), suppressed per rule inline ([`docs/SECURITY_AND_SECRETS.md`](docs/SECURITY_AND_SECRETS.md)) (PR #4) |
 
 Designing the degraded candidate also took iteration. It had to pass the offline gate *honestly* and fail
@@ -405,7 +406,15 @@ hashed, signed **prompt bundle**: prompt + model + pinned weights digest + param
 Source: run `llm-demo-20261109-130256` (commit `6d89c4d`, 1,408 s, passed). The first, fully live run
 (`llm-demo-20261109-111237`, 110 min) reached the same four decisions. The promptfoo gate (`make llm-gate`,
 threshold 90%) passes the champion prompt at 92.7% and fails the regressed prompt at 74.0% (exit 100):
-[`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/). TODO_LLMGATE_RESULT
+[`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/). Rerun on 2026-11-09 on the build machine:
+139/150 (92.7%), identical.
+
+**A portability finding.** Run on a GitHub-hosted runner with the same model weights (identical manifest and layer
+digests), the same Ollama version (0.40.13), prompt, parameters and seed, the champion scored **127/150 (84.7%)**.
+All 23 failures were missed escalations: recall 65.2% vs 83.3%. The runner uses Ollama's CPU backend and the Mac
+uses Metal, and greedy decoding isn't bit-identical across compute backends. A threshold calibrated on one
+backend therefore doesn't transfer to another. Evidence: [`triage-p2.github-cpu.*`](docs/evidence/llm/promptfoo/)
+(run [42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563)).
 
 Caveats: a 3B local model gets only 37% of whole replies right on this policy (reported, not hidden). Labels are
 rule-derived, graders are code, alert traffic is simulated, and latency comes from a shared laptop.
@@ -438,6 +447,9 @@ Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) 
   and no human calibration, so the gold set measures whether a prompt follows a written policy, not fraud
   judgement. 150 cases × 3 tries can't resolve differences of a few points, which is why the margins are wide.
   **Next:** human-labeled cases and a calibrated judge for the rationale.
+- **LLM lane: the promptfoo gate is backend-specific.** Its absolute threshold holds on the machine where it was
+  calibrated, not on a CPU CI runner (84.7% vs 92.7% for the same champion). **Next:** score the base and PR
+  prompts on the same runner and gate on the difference, which would make it a valid PR check on GitHub.
 - **LLM lane: small canary windows.** About 20 candidate calls per 200 routed requests, so per-window p95 is
   noisy. The same-window ratio absorbs whole-machine slowdowns, not variance.
 
@@ -474,13 +486,16 @@ cd web && npm test
 make ci          # everything CI's python + web jobs run
 ```
 
-Latest local run (2026-11-09, clean worktree at `d673e12`, Apple M5 Pro under a load average of about 20):
-**50 Python tests passed** in 12 min 50 s, **5 web tests passed**, chaos replay 10/10, ruff and mypy clean,
-contract check passed, `make verify` passed. The Python suite is slow because the end-to-end tests drive full
-release stories (thousands of simulated requests, including one over real HTTP), not because of the unit tests.
+Latest local run (2026-11-09, this branch rebased on `b27bc04`, Apple M5 Pro under a load average of 13–17):
+**66 Python tests** (50 ML lane + 16 LLM lane) in 10 min: 65 passed. The one failure,
+`test_rollback_over_real_http`, couldn't bind its port because an orphaned server from an interrupted earlier run held
+it. With that process stopped, it passed on rerun (138 s). Also: **5 web tests passed**, chaos replay
+10/10, ruff and mypy clean, contract check and `make llm-gold` passed. The suite is slow because of three
+end-to-end tests, not the unit tests: replay determinism (186 s), the chaos suite (172 s) and the in-process
+release story (76 s) each drive thousands of simulated requests.
 
-**GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs on pull
-requests and manual dispatch, with 5 jobs plus a path-filtered LLM gate:
+**GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on
+pull requests and manual dispatch, plus an LLM gate on manual dispatch only:
 
 | job | what it checks |
 |---|---|
@@ -489,18 +504,20 @@ requests and manual dispatch, with 5 jobs plus a path-filtered LLM gate:
 | `web` | TypeScript typecheck, unit tests, production build |
 | `image` | Docker build (which retrains and re-verifies hashes on Linux), container smoke test, Trivy image scan |
 | `iac` | OpenTofu `fmt` + `validate` (no plan, no apply, no credentials) |
-| `changes` → `llm-gate` | runs only when the LLM lane's prompts, bundles, policy, gold set or code, the Makefile or the workflow change (and on manual dispatch): promptfoo against an Ollama service container pinned by digest, on CPU |
+| `llm-gate` | **manual dispatch only** (`gh workflow run ci -f llm_gate_threshold=<0-100>`): promptfoo against an Ollama service container pinned by digest. It isn't a PR check because its 90% threshold was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). The gate is `make llm-gate` on the build machine. |
 
 The workflow file had never been valid YAML, so before 2026-11-09 it had never run (see
-[How it was built](#how-it-was-built)). Its first real run, on
-[PR #4](https://github.com/AlexRosen23/spectral-canary-works/pull/4), passed `python`, `web` and `iac` and
-caught two real problems in `security` and `image`, both fixed in that PR. PR #4's checks show the current
-result.
+[How it was built](#how-it-was-built)). Its first real runs, on
+[PR #4](https://github.com/AlexRosen23/spectral-canary-works/pull/4), passed `python`, `web` and `iac` from the
+start. They caught real problems in `security` (pip-audit's input, then Trivy misconfigurations) and in `image`
+(Debian 12 CVEs), all fixed in that PR (see the problems table above). PR #4's checks show the current result.
 
 **Duration:** the `python` job is the long one. On a GitHub-hosted runner it took 20.6 minutes in its first run:
 15 min of pytest, 3 min of chaos replay, 1.8 min of the in-process demo. The repository is public, and standard
 GitHub-hosted runners are free for public repositories, so this costs time, not money. CI runs on pull requests
-and manual dispatch only. TODO_CI_DURATION
+and manual dispatch only. In run
+[42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563) the `python` job took 21 min
+and the five PR jobs together about 24 runner-minutes.
 
 No job needs a secret.
 

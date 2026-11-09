@@ -500,15 +500,17 @@
     },
     {
       "claim": "GitHub Actions CI execution",
-      "value": null,
+      "value": "5 PR jobs passed on a GitHub-hosted runner: python (lint, mypy, fixtures with hash checks, contract, pytest, chaos replay, demo), security (pip-audit, gitleaks, npm audit, Trivy fs), web, image (build, smoke test, Trivy image), iac. llm-gate: champion 127/150 (84.7%) on the CPU backend vs 90% threshold calibrated on Metal; made manual-dispatch only",
       "unit": null,
-      "command": ".github/workflows/ci.yml",
-      "artifact": ".github/workflows/ci.yml",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "workflow file",
-      "status": "planned",
-      "environment": null,
-      "note": "Actions disabled on the private repo (owner decision); same checks run via `make ci`"
+      "command": "pull_request run of .github/workflows/ci.yml",
+      "artifact": "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563",
+      "commit": "633dd5c5242e8ff0c4c9fc256b79059614c96ee9",
+      "source": "GitHub Actions run 42692611563 (PR #4)",
+      "status": "verified",
+      "environment": {
+        "runner": "ubuntu-24.04 GitHub-hosted"
+      },
+      "note": "Actions enabled 2026-11-09 (owner); repo public, standard runners free; python job ~21 min"
     },
     {
       "claim": "Local Docker stack (gateway, web, simulated traffic, Prometheus, Grafana) up/down",
