@@ -7,7 +7,7 @@ RUN := $(UV) run --frozen
 API_PORT ?= 5120
 WEB_PORT ?= 5121
 
-.PHONY: setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
+.PHONY: start setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
         loadtest web-build up down clean-state iac-validate contract-check docker-build
 
 setup:            ## install Python + web deps, create local secrets (gitignored)
@@ -26,6 +26,9 @@ test:             ## full test suite incl. end-to-end failure->rollback scenario
 
 test-fast:        ## unit tests only
 	$(RUN) pytest -m "not e2e"
+
+start:            ## everything on one port: builds what is missing, then gateway + control room on 127.0.0.1:$(API_PORT)
+	SCW_API_PORT=$(API_PORT) ./scripts/start.sh
 
 serve:            ## gateway on 127.0.0.1:$(API_PORT) (reads var/runs/latest if present)
 	$(RUN) scw serve --port $(API_PORT)

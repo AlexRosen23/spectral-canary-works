@@ -21,13 +21,16 @@ import numpy as np
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import contract as ct
 from . import telemetry as tm
 from .auth import Operator
 from .controller import ReleaseError
 from .metrics import percentiles
 from .monitor import drift_report
+from .paths import PROJECT_ROOT
 from .registry import verify_registry
 from .runtime import Runtime, build_runtime
 from .schema import schema_dict
@@ -485,6 +488,32 @@ def create_app(rt: Runtime | None = None, start_background: bool = True) -> Fast
             "db": str(rt.db_path.name),
             "policy_sha256": rt.policy.sha256,
         }
+
+    # -- read-only project contract (dashboards such as the owner's Constellation read these) --------------------
+    @app.get("/health")
+    def health() -> dict[str, Any]:
+        return ct.health_answer(R().controller.health(), R().paths.runs)
+
+    @app.get("/capabilities")
+    def capabilities() -> dict[str, Any]:
+        return ct.capabilities_answer()
+
+    @app.get("/runs")
+    def contract_runs(limit: int = Query(20, ge=1, le=200)) -> dict[str, Any]:
+        return ct.runs_answer(R().paths.runs, limit)
+
+    @app.get("/runs/{run_id}")
+    def contract_run(run_id: str) -> dict[str, Any]:
+        r = ct.run_answer(R().paths.runs, run_id)
+        if r is None:
+            raise HTTPException(404, "unknown run")
+        return r
+
+    # The built control room (web/dist), served same-origin so one process opens the whole app. Mounted last so every
+    # API route above wins.
+    dist = PROJECT_ROOT / "web" / "dist"
+    if (dist / "index.html").exists():
+        app.mount("/", StaticFiles(directory=dist, html=True), name="ui")
 
     return app
 

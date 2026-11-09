@@ -153,3 +153,42 @@ def test_tampered_champion_fails_closed_without_crashing(scw_home, tmp_path) -> 
         p = c.post("/v1/predict", json={"features": _features(rt2)})
         assert p.status_code == 503 and p.json()["error"] == "champion_unavailable"
     rt2.close()
+
+
+def test_project_contract_health_capabilities_runs(client, rt) -> None:
+    """The read-only contract dashboards read: /health, /capabilities, /runs (from recorded run reports)."""
+    import json as _json
+    import time as _time
+
+    run = rt.paths.runs / "chaos-20990101-000000"
+    run.mkdir(parents=True, exist_ok=True)
+    (run / "report.json").write_text(
+        _json.dumps(
+            {
+                "run_id": run.name,
+                "kind": "chaos",
+                "started_at": _time.time(),
+                "duration_s": 12.5,
+                "passed": True,
+                "scenarios": [{"scenario": "a", "passed": True}, {"scenario": "b", "passed": True}],
+                "commit": "abc",
+            }
+        )
+    )
+    try:
+        h = client.get("/health").json()
+        assert h["ok"] is True and h["project_id"] == "spectral-canary" and h["mode"] == "simulated"
+        assert h["last_run"] == {"run_id": run.name, "status": "completed"} and h["problems"] == []
+        c = client.get("/capabilities").json()
+        assert c["project_id"] == "spectral-canary" and c["dataset"]["synthetic"] is True
+        assert c["implemented"] and c["not_implemented"] and c["disabled_by_design"]
+        r = client.get("/runs", params={"limit": 5}).json()
+        assert r["project_id"] == "spectral-canary" and r["total"] >= 1
+        first = r["runs"][0]
+        assert first["run_id"] == run.name and first["kind"] == "chaos" and first["mode"] == "simulated"
+        assert first["headline"] == "2 of 2 failure scenarios held" and first["provenance"]["synthetic"] is True
+        assert client.get(f"/runs/{run.name}").json()["status"] == "completed"
+        assert client.get("/runs/nope").status_code == 404
+    finally:
+        (run / "report.json").unlink()
+        run.rmdir()
