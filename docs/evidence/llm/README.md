@@ -21,4 +21,6 @@ Runs:
 - [`llm-demo-20261109-111237`](llm-demo-20261109-111237/RESULTS.md): first run, everything live (6,585 s). Recorded
   as FAILED only because it treated "the smoke subset would have shipped p3" as a pass/fail expectation, which did
   not hold for this model (see `docs/AI_ENGINEER_READINESS.md`). Every release decision matched the expectation.
-- [`promptfoo/`](promptfoo/): `make llm-gate` output for the champion prompt and for the regressed prompt.
+- [`promptfoo/`](promptfoo/): `make llm-gate` output for the champion prompt and for the regressed prompt. `triage-p2.github-cpu.*`: the same
+  champion on a GitHub CPU runner (84.7%). `relative.github-cpu.*`: the relative CI gate (`make llm-gate-relative`),
+  base and head both 127/150 on one runner, PASS (run 42701455881).

@@ -1,0 +1,45 @@
+{
+  "ok": true,
+  "margin_points": 2.2,
+  "drop_points": 0.0,
+  "recall_margin": 0.05,
+  "reasons": [],
+  "base": {
+    "label": "base 9bda89b bundle default",
+    "provider": "triage-p2@llama3.2:3b",
+    "cases": 150,
+    "passed": 127,
+    "errors": 0,
+    "must_escalate": 66,
+    "failed_by_metric": {
+      "escalation_caught": 23
+    },
+    "pass_rate": 84.6667
+  },
+  "head": {
+    "label": "head 2d653b5 bundle default",
+    "provider": "triage-p2@llama3.2:3b",
+    "cases": 150,
+    "passed": 127,
+    "errors": 0,
+    "must_escalate": 66,
+    "failed_by_metric": {
+      "escalation_caught": 23
+    },
+    "pass_rate": 84.6667
+  },
+  "command": "make llm-gate-relative (CI job llm-gate, pull_request on PR #6)",
+  "github_run": "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881",
+  "job_step_started_utc": "2026-11-09T21:21:08Z",
+  "job_step_ended_utc": "2026-11-09T21:47:49Z",
+  "suite_durations": {
+    "base": "13m 19s",
+    "head": "12m 54s"
+  },
+  "base_ref": "docs/readme-writeup @ 9bda89b",
+  "head_ref": "refs/pull/6/merge 2d653b5 (PR head 0509e06 merged into 9bda89b)",
+  "runner": "ubuntu-24.04 GitHub-hosted, Ollama CPU backend",
+  "ollama": "0.40.13 (ollama/ollama@sha256:b2f0122c476b...)",
+  "model_manifest": "llama3.2:3b a80c4f17acd5",
+  "determinism": "failed case ids identical in base, head and run 42692611563 (23 missed escalations each); raw reply text identical for 150/150 cases base vs run 42692611563 but 149/150 base vs head (one reply differed in wording, same grade)"
+}
