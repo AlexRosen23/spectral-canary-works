@@ -1,0 +1,526 @@
+{
+  "generated_from": "scripts/build_evidence.py",
+  "head_commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+  "note": "artifact paths under var/ are local, gitignored run outputs; regenerate with the listed command",
+  "items": [
+    {
+      "claim": "v1-logreg held-out PR-AUC (synthetic test split, n=8000, positives=487)",
+      "value": {
+        "pr_auc": 0.5997,
+        "ci95": [
+          0.5517,
+          0.6421
+        ],
+        "f1": 0.5677,
+        "precision": 0.6061,
+        "recall": 0.5339,
+        "ece": 0.0042
+      },
+      "unit": "ratio",
+      "command": "make train-fixtures && make eval",
+      "artifact": "var/artifacts/v1-logreg/manifest.json",
+      "commit": "dc464b9c87c09449f8817d29a6866ea81f2a222e",
+      "source": "training manifest (model_artifact_v1)",
+      "status": "verified",
+      "environment": {
+        "machine": "arm64",
+        "numpy": "2.5.4",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "python": "3.12.15",
+        "sklearn": "1.9.1"
+      },
+      "note": "synthetic data; says nothing about real fraud"
+    },
+    {
+      "claim": "v2-hgb held-out PR-AUC (synthetic test split, n=8000, positives=487)",
+      "value": {
+        "pr_auc": 0.6199,
+        "ci95": [
+          0.5697,
+          0.6621
+        ],
+        "f1": 0.5975,
+        "precision": 0.6537,
+        "recall": 0.5503,
+        "ece": 0.0051
+      },
+      "unit": "ratio",
+      "command": "make train-fixtures && make eval",
+      "artifact": "var/artifacts/v2-hgb/manifest.json",
+      "commit": "dc464b9c87c09449f8817d29a6866ea81f2a222e",
+      "source": "training manifest (model_artifact_v1)",
+      "status": "verified",
+      "environment": {
+        "machine": "arm64",
+        "numpy": "2.5.4",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "python": "3.12.15",
+        "sklearn": "1.9.1"
+      },
+      "note": "synthetic data; says nothing about real fraud"
+    },
+    {
+      "claim": "v3-hgb-fresh held-out PR-AUC (synthetic test split, n=8000, positives=487)",
+      "value": {
+        "pr_auc": 0.6004,
+        "ci95": [
+          0.5577,
+          0.6427
+        ],
+        "f1": 0.5748,
+        "precision": 0.6092,
+        "recall": 0.5441,
+        "ece": 0.0034
+      },
+      "unit": "ratio",
+      "command": "make train-fixtures && make eval",
+      "artifact": "var/artifacts/v3-hgb-fresh/manifest.json",
+      "commit": "dc464b9c87c09449f8817d29a6866ea81f2a222e",
+      "source": "training manifest (model_artifact_v1)",
+      "status": "verified",
+      "environment": {
+        "machine": "arm64",
+        "numpy": "2.5.4",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "python": "3.12.15",
+        "sklearn": "1.9.1"
+      },
+      "note": "synthetic data; says nothing about real fraud"
+    },
+    {
+      "claim": "v4-hgb-segfilter held-out PR-AUC (synthetic test split, n=8000, positives=487)",
+      "value": {
+        "pr_auc": 0.4932,
+        "ci95": [
+          0.4506,
+          0.5319
+        ],
+        "f1": 0.4709,
+        "precision": 0.5185,
+        "recall": 0.4312,
+        "ece": 0.0169
+      },
+      "unit": "ratio",
+      "command": "make train-fixtures && make eval",
+      "artifact": "var/artifacts/v4-hgb-segfilter/manifest.json",
+      "commit": "dc464b9c87c09449f8817d29a6866ea81f2a222e",
+      "source": "training manifest (model_artifact_v1)",
+      "status": "verified",
+      "environment": {
+        "machine": "arm64",
+        "numpy": "2.5.4",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "python": "3.12.15",
+        "sklearn": "1.9.1"
+      },
+      "note": "synthetic data; says nothing about real fraud"
+    },
+    {
+      "claim": "End-to-end release story: v2 promoted, v4 blocked offline, v3 auto-rolled back under simulated shift",
+      "value": {
+        "self_approval_refused": true,
+        "A": "promoted",
+        "B": "blocked",
+        "C": "rolled_back",
+        "champion_after": "v2-hgb",
+        "mode_after": "none",
+        "post_rollback_versions": [
+          "v2-hgb"
+        ]
+      },
+      "unit": "states",
+      "command": "make demo",
+      "artifact": "var/runs/demo-20261109-001407/report.json",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "demo run demo-20261109-001407 (driver=http, 145.6 s)",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 17.08
+      },
+      "note": "traffic is a seeded simulation; routing, predictions and rollback are real"
+    },
+    {
+      "claim": "Canary guardrail evidence that triggered the rollback (paired, labeled)",
+      "value": {
+        "candidate_caught": 65,
+        "candidate_recall": 0.5804,
+        "champion_recall": 0.7411,
+        "champion_would_have_caught": 83,
+        "mcnemar_p_one_sided": 0.001468,
+        "missed_by_candidate_only": 26,
+        "missed_by_champion_only": 8,
+        "positives": 112
+      },
+      "unit": "counts / p-value",
+      "command": "make demo",
+      "artifact": "var/runs/demo-20261109-001407/reports/postmortem-rel-0003.json",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "generated postmortem",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 17.08
+      },
+      "note": null
+    },
+    {
+      "claim": "Rollback verification: real predictions served by the restored champion",
+      "value": "50/50",
+      "unit": "requests",
+      "command": "make demo",
+      "artifact": "var/runs/demo-20261109-001407/reports/postmortem-rel-0003.json",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "rollback.verified event",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 17.08
+      },
+      "note": null
+    },
+    {
+      "claim": "Seeded failure scenarios passing with expected outcomes",
+      "value": "10/10 passed",
+      "unit": "scenarios",
+      "command": "make chaos-replay",
+      "artifact": "var/runs/chaos-20261109-001636/report.json",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "chaos run chaos-20261109-001636",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 18.32
+      },
+      "note": "schema_break, distribution_shift, degraded_predictions, latency_spike, candidate_timeout, partial_outage, corrupted_artifact, repeat_rollback, restart_recovery, promotion_race"
+    },
+    {
+      "claim": "Load test champion @ concurrency 1 (closed loop, 20.0 s)",
+      "value": {
+        "throughput_rps": 254.1,
+        "latency_ms": {
+          "p50": 3.83,
+          "p95": 5.44,
+          "p99": 6.15,
+          "max": 13.2,
+          "mean": 3.93
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 63.5,
+        "server_rss_mb_max": 170.1,
+        "requests": 5082,
+        "load_avg_1m_before": 14.27
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/champion-c1/raw-champion-c1.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test champion @ concurrency 4 (closed loop, 20.01 s)",
+      "value": {
+        "throughput_rps": 390.9,
+        "latency_ms": {
+          "p50": 10.08,
+          "p95": 14.87,
+          "p99": 17.44,
+          "max": 54.99,
+          "mean": 10.22
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 106.5,
+        "server_rss_mb_max": 170.4,
+        "requests": 7821,
+        "load_avg_1m_before": 12.73
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/champion-c4/raw-champion-c4.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test champion @ concurrency 16 (closed loop, 20.02 s)",
+      "value": {
+        "throughput_rps": 374.0,
+        "latency_ms": {
+          "p50": 27.08,
+          "p95": 120.78,
+          "p99": 195.95,
+          "max": 363.23,
+          "mean": 42.66
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 109.4,
+        "server_rss_mb_max": 173.6,
+        "requests": 7488,
+        "load_avg_1m_before": 12.71
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/champion-c16/raw-champion-c16.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test champion @ concurrency 32 (closed loop, 20.05 s)",
+      "value": {
+        "throughput_rps": 365.9,
+        "latency_ms": {
+          "p50": 72.73,
+          "p95": 166.52,
+          "p99": 237.8,
+          "max": 473.21,
+          "mean": 86.96
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 109.0,
+        "server_rss_mb_max": 177.8,
+        "requests": 7337,
+        "load_avg_1m_before": 15.76
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/champion-c32/raw-champion-c32.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test canary @ concurrency 1 (closed loop, 20.02 s)",
+      "value": {
+        "throughput_rps": 144.4,
+        "latency_ms": {
+          "p50": 5.86,
+          "p95": 12.86,
+          "p99": 17.15,
+          "max": 183.33,
+          "mean": 6.92
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 62.3,
+        "server_rss_mb_max": 185.7,
+        "requests": 2890,
+        "load_avg_1m_before": 16.12
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/canary-c1/raw-canary-c1.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test canary @ concurrency 4 (closed loop, 20.02 s)",
+      "value": {
+        "throughput_rps": 186.9,
+        "latency_ms": {
+          "p50": 18.46,
+          "p95": 43.57,
+          "p99": 58.15,
+          "max": 202.55,
+          "mean": 21.37
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 92.3,
+        "server_rss_mb_max": 181.4,
+        "requests": 3742,
+        "load_avg_1m_before": 17.71
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/canary-c4/raw-canary-c4.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test canary @ concurrency 16 (closed loop, 20.03 s)",
+      "value": {
+        "throughput_rps": 270.1,
+        "latency_ms": {
+          "p50": 34.63,
+          "p95": 174.48,
+          "p99": 346.16,
+          "max": 680.67,
+          "mean": 58.99
+        },
+        "availability": 1.0,
+        "server_cpu_percent_mean": 100.0,
+        "server_rss_mb_max": 182.0,
+        "requests": 5411,
+        "load_avg_1m_before": 20.34
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/canary-c16/raw-canary-c16.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "Load test canary @ concurrency 32 (closed loop, 20.08 s)",
+      "value": {
+        "throughput_rps": 288.5,
+        "latency_ms": {
+          "p50": 81.97,
+          "p95": 258.66,
+          "p99": 483.58,
+          "max": 763.04,
+          "mean": 110.27
+        },
+        "availability": 0.99983,
+        "server_cpu_percent_mean": 110.2,
+        "server_rss_mb_max": 204.4,
+        "requests": 5792,
+        "load_avg_1m_before": 25.77
+      },
+      "unit": "rps / ms / ratio",
+      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
+      "artifact": "var/runs/loadtest-20261109-001009/canary-c32/raw-canary-c32.jsonl",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "loadtest run loadtest-20261109-001009",
+      "status": "verified",
+      "environment": {
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "machine": "arm64",
+        "python": "3.12.15",
+        "cpu_count": 18,
+        "ram_gb": 48.0,
+        "cpu": "Apple M5 Pro",
+        "load_avg_1m": 24.64
+      },
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+    },
+    {
+      "claim": "AWS deployment",
+      "value": null,
+      "unit": null,
+      "command": "SCW_CONFIRM_BILLABLE=yes scripts/aws_deploy.sh",
+      "artifact": "infra/aws/",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "OpenTofu validate only",
+      "status": "planned",
+      "environment": null,
+      "note": "implemented and validated; NOT provisioned; $0 incurred"
+    },
+    {
+      "claim": "GitHub Actions CI execution",
+      "value": null,
+      "unit": null,
+      "command": ".github/workflows/ci.yml",
+      "artifact": ".github/workflows/ci.yml",
+      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+      "source": "workflow file",
+      "status": "planned",
+      "environment": null,
+      "note": "Actions disabled on the private repo (owner decision); same checks run via `make ci`"
+    },
+    {
+      "claim": "Local Docker stack (gateway, web, simulated traffic, Prometheus, Grafana) up/down",
+      "value": "all services healthy; Prometheus scraped real gateway requests; Grafana dashboard rendered data; `make down` left 0 containers/volumes/networks; infra/local OpenTofu apply -> ready -> destroy",
+      "unit": null,
+      "command": "make up && make down; cd infra/local && tofu apply && tofu destroy",
+      "artifact": "docker-compose.yml, infra/local/main.tf",
+      "commit": "dc464b9",
+      "source": "interactive verification in the build session (2026-11-08/09), working tree committed as dc464b9",
+      "status": "unverified",
+      "environment": null,
+      "note": "verified by hand, not by an automated recorded run; re-check with `make up`"
+    }
+  ]
+}

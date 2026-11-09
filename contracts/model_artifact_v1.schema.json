@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlexRosen23/spectral-canary-works/contracts/model_artifact_v1.schema.json",
+  "title": "model_artifact_v1",
+  "description": "Portable manifest for a trained model artifact that a release gateway can verify, gate, serve and roll back. Framework-neutral: any trainer (scikit-learn here; a PyTorch lab such as Morrowglass could emit the same contract) writes this file next to its artifact. The gateway trusts nothing in it without re-checking: it re-hashes the artifact, re-scores the frozen split and verifies its own signature at registration.",
+  "type": "object",
+  "required": ["contract", "model_name", "version", "family", "owner", "intended_use", "artifact", "input_schema", "output_schema", "threshold", "training", "dataset", "metrics", "source", "environment"],
+  "properties": {
+    "contract": {"const": "model_artifact_v1"},
+    "model_name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"},
+    "version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", "description": "Immutable; a new artifact always needs a new version."},
+    "family": {"type": "string", "description": "e.g. logreg, hgb_calibrated, torch_mlp"},
+    "owner": {"type": "string"},
+    "intended_use": {"type": "string"},
+    "change_summary": {"type": "string"},
+    "deliberately_degraded": {"type": "boolean", "default": false},
+    "artifact": {
+      "type": "object",
+      "required": ["format", "file", "sha256", "bytes"],
+      "properties": {
+        "format": {"enum": ["skops", "onnx", "safetensors", "torchscript"], "description": "Deserialization-safe formats only; raw pickle is not accepted."},
+        "file": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "untrusted_types_outside_allowlist": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "input_schema": {
+      "type": "object",
+      "required": ["schema_version", "features", "schema_sha256"],
+      "properties": {
+        "schema_version": {"type": "string"},
+        "schema_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "label": {"type": "string"},
+        "features": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["name", "kind"],
+            "properties": {
+              "name": {"type": "string"},
+              "kind": {"enum": ["float", "int", "bool", "category"]},
+              "minimum": {"type": ["number", "null"]},
+              "maximum": {"type": ["number", "null"]},
+              "categories": {"type": "array", "items": {"type": "string"}},
+              "description": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["score", "decision"],
+      "properties": {"score": {"type": "object"}, "decision": {"type": "object"}}
+    },
+    "threshold": {
+      "type": "object", "required": ["value", "selected_on", "rule"],
+      "properties": {"value": {"type": "number"}, "selected_on": {"const": "val", "description": "Never the test split."}, "rule": {"type": "string"}}
+    },
+    "training": {
+      "type": "object", "required": ["config_path", "config_sha256", "seed", "data_change"],
+      "properties": {
+        "config_path": {"type": "string"},
+        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "seed": {"type": "integer"},
+        "params": {"type": "object"},
+        "data_change": {"type": "object", "required": ["kind"]},
+        "fit_seconds": {"type": "number"},
+        "train_rows_used": {"type": "integer"},
+        "train_positives_used": {"type": "integer"}
+      }
+    },
+    "dataset": {
+      "type": "object", "required": ["name", "dataset_hash"],
+      "properties": {"name": {"type": "string"}, "dataset_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "generator_version": {"type": "string"}, "splits": {"type": "object"}}
+    },
+    "metrics": {
+      "type": "object", "required": ["test"],
+      "properties": {
+        "test": {
+          "type": "object",
+          "required": ["n", "positives", "pr_auc", "precision", "recall", "f1", "ece", "threshold"],
+          "properties": {
+            "n": {"type": "integer"}, "positives": {"type": "integer"},
+            "pr_auc": {"type": "number", "minimum": 0, "maximum": 1},
+            "pr_auc_ci95": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+            "precision": {"type": "number"}, "recall": {"type": "number"}, "f1": {"type": "number"},
+            "ece": {"type": "number"}, "brier": {"type": "number"}, "threshold": {"type": "number"},
+            "slices": {"type": "object"}
+          }
+        }
+      }
+    },
+    "latency_single_row": {"type": "object"},
+    "test_prediction_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source": {"type": "object", "required": ["commit", "dirty"], "properties": {"commit": {"type": ["string", "null"]}, "dirty": {"type": ["boolean", "null"]}}},
+    "environment": {"type": "object", "required": ["python"]},
+    "schema_version": {"type": "string"}
+  },
+  "additionalProperties": true
+}

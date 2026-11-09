@@ -1,0 +1,12 @@
+# Baseline champion: regularized logistic regression on log-scaled, standardized features.
+version = "v1-logreg"
+model_name = "txn-risk"
+family = "logreg"
+seed = 7
+owner = "ml-platform-demo (fixture owner, not a real team)"
+intended_use = "Rank card transactions for manual fraud review; score is a calibrated-ish probability."
+change_summary = "Initial baseline."
+
+[params]
+C = 1.0
+max_iter = 2000

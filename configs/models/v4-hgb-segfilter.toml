@@ -1,0 +1,25 @@
+# DELIBERATELY DEGRADED candidate that the OFFLINE GATE must block. A data-quality filter removed every
+# card-not-present transaction above $400 from training ("suspected test transactions"). That segment
+# holds a large share of fraud, so holdout quality drops far outside the non-inferiority margin.
+version = "v4-hgb-segfilter"
+model_name = "txn-risk"
+family = "hgb_calibrated"
+seed = 7
+owner = "ml-platform-demo (fixture owner, not a real team)"
+intended_use = "Rank card transactions for manual fraud review; score is a calibrated probability."
+change_summary = "Added a data-quality filter that drops high-value card-not-present rows."
+deliberately_degraded = true
+
+[params]
+max_iter = 200
+learning_rate = 0.08
+max_leaf_nodes = 31
+l2_regularization = 1.0
+calibration = "isotonic"
+calibration_cv = 3
+
+[data_change]
+kind = "row_filter"
+description = "Rows with card_present = false and amount > amount_gt are dropped from training."
+card_present = false
+amount_gt = 400.0

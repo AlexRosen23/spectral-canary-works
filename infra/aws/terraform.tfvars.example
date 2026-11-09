@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (gitignored) and fill in. Never commit real values.
+region             = "us-east-2"
+operator_cidr      = "203.0.113.7/32"
+budget_email       = "you@example.com"
+monthly_budget_usd = 10
+image_tag          = "v0.1.0"

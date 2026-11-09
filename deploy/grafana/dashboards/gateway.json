@@ -1,0 +1,224 @@
+{
+  "uid": "scw-gateway",
+  "title": "Spectral Canary Works \u2014 gateway (local)",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "tags": [
+    "spectral-canary-works"
+  ],
+  "description": "Real gateway metrics scraped from /metrics. Traffic from the `traffic` service is SIMULATED.",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request rate by arm / model version (SIMULATED traffic)",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (arm, model_version) (rate(scw_requests_total{status=\"ok\"}[1m]))",
+          "legendFormat": "{{arm}} {{model_version}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Handler latency p50 / p95 / p99",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(scw_request_latency_seconds_bucket[1m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(scw_request_latency_seconds_bucket[1m])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(scw_request_latency_seconds_bucket[1m])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Error / schema-reject / fallback rate",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(scw_requests_total{status=\"error\"}[1m]))",
+          "legendFormat": "5xx model errors"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(scw_schema_errors_total[1m]))",
+          "legendFormat": "schema rejects (422)"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (reason) (rate(scw_candidate_fallbacks_total[1m]))",
+          "legendFormat": "fallback {{reason}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Process CPU and memory",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(scw_process_cpu_seconds_total[1m])",
+          "legendFormat": "CPU cores used"
+        },
+        {
+          "refId": "B",
+          "expr": "scw_process_resident_memory_bytes / 2^20",
+          "legendFormat": "RSS MiB"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Release decisions, guardrail verdicts, rollbacks",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (decision) (increase(scw_release_decisions_total[5m]))",
+          "legendFormat": "{{decision}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (verdict) (increase(scw_guardrail_evaluations_total[5m]))",
+          "legendFormat": "guardrail {{verdict}}"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (trigger) (increase(scw_rollbacks_total[5m]))",
+          "legendFormat": "rollback {{trigger}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Deployment pointer generation / canary fraction",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "scw_deployment_generation",
+          "legendFormat": "generation"
+        },
+        {
+          "refId": "B",
+          "expr": "scw_canary_fraction",
+          "legendFormat": "canary fraction"
+        }
+      ]
+    }
+  ]
+}

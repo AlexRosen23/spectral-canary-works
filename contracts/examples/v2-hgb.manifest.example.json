@@ -1,0 +1,256 @@
+{
+  "_example_note": "Copied from a real v2-hgb training run of this repo (slices trimmed). The artifact file itself is not committed.",
+  "artifact": {
+    "bytes": 2168084,
+    "file": "model.skops",
+    "format": "skops",
+    "sha256": "4e791268344bd90d61b867364884d4fefd101fb3a73fe52dad1bf4e60f3bff86",
+    "untrusted_types_outside_allowlist": []
+  },
+  "change_summary": "Gradient-boosted trees capture the non-linear card-not-present x amount and device-trust effects.",
+  "contract": "model_artifact_v1",
+  "dataset": {
+    "dataset_hash": "c3c47c245a061d1d96999bcb2ceeacbeb65951a39eb188de0ac057775ea4a246",
+    "generator_version": "txn-risk-gen-1.0",
+    "name": "spectral-txn-risk",
+    "splits": {
+      "test": "accc6e2a6639a09bd3f1f6c1aefcf1075d398c59ecaa06f9889651c91e9c2554",
+      "train": "0c91263cbe6238ffa7c0f514d94311a7bb9c94d2d4f5274f3edc22f936eb558b",
+      "val": "45f2f975f97b0b1e6ec89943d86bb6cc3ec06a3d907bcc9fb97cfe397a6236e5"
+    }
+  },
+  "deliberately_degraded": false,
+  "environment": {
+    "machine": "arm64",
+    "numpy": "2.5.4",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.15",
+    "sklearn": "1.9.1"
+  },
+  "family": "hgb_calibrated",
+  "input_schema": {
+    "features": [
+      {
+        "categories": [],
+        "description": "Transaction amount in USD.",
+        "kind": "float",
+        "maximum": 50000.0,
+        "minimum": 0.01,
+        "name": "amount"
+      },
+      {
+        "categories": [
+          "grocery",
+          "fuel",
+          "restaurants",
+          "online_retail",
+          "electronics",
+          "travel",
+          "gaming",
+          "gift_cards"
+        ],
+        "description": "Merchant type.",
+        "kind": "category",
+        "maximum": null,
+        "minimum": null,
+        "name": "merchant_category"
+      },
+      {
+        "categories": [],
+        "description": "Local hour the transaction was made.",
+        "kind": "int",
+        "maximum": 23,
+        "minimum": 0,
+        "name": "hour_of_day"
+      },
+      {
+        "categories": [],
+        "description": "Days since the account was opened.",
+        "kind": "int",
+        "maximum": 20000,
+        "minimum": 0,
+        "name": "account_age_days"
+      },
+      {
+        "categories": [],
+        "description": "Transactions on the card in the prior 24 hours.",
+        "kind": "int",
+        "maximum": 500,
+        "minimum": 0,
+        "name": "txn_count_24h"
+      },
+      {
+        "categories": [],
+        "description": "Distance from billing address.",
+        "kind": "float",
+        "maximum": 20000.0,
+        "minimum": 0.0,
+        "name": "distance_from_home_km"
+      },
+      {
+        "categories": [],
+        "description": "Device reputation score, 1 = trusted.",
+        "kind": "float",
+        "maximum": 1.0,
+        "minimum": 0.0,
+        "name": "device_trust_score"
+      },
+      {
+        "categories": [],
+        "description": "Physical card was present.",
+        "kind": "bool",
+        "maximum": null,
+        "minimum": null,
+        "name": "card_present"
+      },
+      {
+        "categories": [],
+        "description": "Card country differs from merchant country.",
+        "kind": "bool",
+        "maximum": null,
+        "minimum": null,
+        "name": "country_mismatch"
+      }
+    ],
+    "label": "is_fraud",
+    "schema_sha256": "9a43cf84c97543f7eb823411048c47361828c5391fab39d6f6a6473bd6991a74",
+    "schema_version": "txn-risk-v1"
+  },
+  "intended_use": "Rank card transactions for manual fraud review; score is a calibrated probability.",
+  "latency_single_row": {
+    "mean": 18.373,
+    "method": "300 sequential single-row predict_proba calls, in-process",
+    "n": 300,
+    "p50": 14.487,
+    "p95": 37.723,
+    "p99": 66.238,
+    "unit": "ms"
+  },
+  "metrics": {
+    "test": {
+      "brier": 0.03412,
+      "ece": 0.0051,
+      "f1": 0.5975,
+      "flag_rate": 0.0512,
+      "fn": 219,
+      "fp": 142,
+      "n": 8000,
+      "positive_rate": 0.0609,
+      "positives": 487,
+      "pr_auc": 0.6199,
+      "pr_auc_ci95": [
+        0.5697,
+        0.6621
+      ],
+      "precision": 0.6537,
+      "precision_ci95": [
+        0.6064,
+        0.6981
+      ],
+      "recall": 0.5503,
+      "recall_ci95": [
+        0.5059,
+        0.5939
+      ],
+      "roc_auc": 0.9226,
+      "slices": {
+        "card_not_present": {
+          "f1": 0.6407,
+          "flag_rate": 0.1074,
+          "fn": 159,
+          "fp": 136,
+          "n": 3716,
+          "positives": 422,
+          "pr_auc": 0.6722,
+          "precision": 0.6591,
+          "precision_ci95": [
+            0.6113,
+            0.7039
+          ],
+          "recall": 0.6232,
+          "recall_ci95": [
+            0.5761,
+            0.6681
+          ],
+          "tn": 3158,
+          "tp": 263
+        },
+        "card_present": {
+          "f1": 0.1316,
+          "flag_rate": 0.0026,
+          "fn": 60,
+          "fp": 6,
+          "n": 4284,
+          "positives": 65,
+          "pr_auc": 0.1961,
+          "precision": 0.4545,
+          "precision_ci95": [
+            0.2127,
+            0.7199
+          ],
+          "recall": 0.0769,
+          "recall_ci95": [
+            0.0333,
+            0.1678
+          ],
+          "tn": 4213,
+          "tp": 5
+        }
+      },
+      "threshold": 0.342598,
+      "tn": 7371,
+      "tp": 268
+    },
+    "val": {
+      "f1": 0.6162,
+      "pr_auc": 0.6415,
+      "precision": 0.682,
+      "recall": 0.562
+    }
+  },
+  "model_name": "txn-risk",
+  "output_schema": {
+    "decision": {
+      "meaning": "score >= threshold (route to manual review)",
+      "type": "boolean"
+    },
+    "score": {
+      "maximum": 1,
+      "meaning": "P(is_fraud=1)",
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "owner": "ml-platform-demo (fixture owner, not a real team)",
+  "schema_version": "txn-risk-v1",
+  "source": {
+    "commit": null,
+    "dirty": null
+  },
+  "test_prediction_sha256": "62328c491b1f99c03f5cd54b93b1e9dddc76d15b500c015282df35c38bab3ddb",
+  "threshold": {
+    "rule": "max F1",
+    "selected_on": "val",
+    "value": 0.342598
+  },
+  "training": {
+    "config_path": "configs/models/v2-hgb.toml",
+    "config_sha256": "ac2322d378b2cde35c4f820834685ef84bf8805e2eaf7f0317268c58c6d3f3b6",
+    "data_change": {
+      "kind": "none"
+    },
+    "fit_seconds": 2.093,
+    "params": {
+      "calibration": "isotonic",
+      "calibration_cv": 3,
+      "l2_regularization": 1.0,
+      "learning_rate": 0.08,
+      "max_iter": 200,
+      "max_leaf_nodes": 31
+    },
+    "seed": 7,
+    "train_positives_used": 1476,
+    "train_rows_used": 24000
+  },
+  "version": "v2-hgb"
+}

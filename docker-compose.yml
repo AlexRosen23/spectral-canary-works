@@ -1,0 +1,67 @@
+# Production-like LOCAL stack. Everything binds to 127.0.0.1; nothing is exposed beyond this Mac.
+#   make up    -> build + start      make down -> stop and remove containers, network, volumes
+# The `traffic` service sends labeled SIMULATED requests so the dashboards show real request telemetry.
+name: spectral-canary-works
+
+services:
+  api:
+    build: .
+    image: spectral-canary-works:local
+    ports: ["127.0.0.1:5120:5120"]
+    environment:
+      SCW_ENABLE_CHAOS: "0"
+    volumes: ["scw-runs:/app/var/runs", "scw-secrets:/app/var/secrets"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 1g}
+    restart: unless-stopped
+
+  web:
+    build: {context: ./web, args: {VITE_API_URL: "http://127.0.0.1:5120"}}
+    image: spectral-canary-works-web:local
+    ports: ["127.0.0.1:5121:8080"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on: {api: {condition: service_healthy}}
+
+  traffic:
+    image: spectral-canary-works:local
+    command: ["scw", "traffic", "--base-url", "http://api:5120", "--rps", "8"]
+    healthcheck: {disable: true}
+    depends_on: {api: {condition: service_healthy}}
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    ports: ["127.0.0.1:5122:9090"]
+    volumes: ["./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prom-data:/prometheus"]
+    depends_on: {api: {condition: service_healthy}}
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    ports: ["127.0.0.1:5123:3000"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus]
+
+volumes:
+  scw-runs: {}
+  scw-secrets: {}
+  prom-data: {}

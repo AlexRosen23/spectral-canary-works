@@ -1,0 +1,17 @@
+# Stronger candidate: histogram gradient boosting, isotonic-calibrated with 3-fold CV on the train split
+# only (validation stays untouched for threshold selection; test stays frozen for reporting).
+version = "v2-hgb"
+model_name = "txn-risk"
+family = "hgb_calibrated"
+seed = 7
+owner = "ml-platform-demo (fixture owner, not a real team)"
+intended_use = "Rank card transactions for manual fraud review; score is a calibrated probability."
+change_summary = "Gradient-boosted trees capture the non-linear card-not-present x amount and device-trust effects."
+
+[params]
+max_iter = 200
+learning_rate = 0.08
+max_leaf_nodes = 31
+l2_regularization = 1.0
+calibration = "isotonic"
+calibration_cv = 3

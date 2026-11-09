@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: spectral-canary-works
+    folder: Spectral Canary Works
+    type: file
+    options: {path: /var/lib/grafana/dashboards}
