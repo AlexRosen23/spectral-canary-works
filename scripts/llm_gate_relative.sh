@@ -9,13 +9,13 @@
 #   LLM_GATE_BASE         git ref for that temporary worktree (default origin/main).
 #   LLM_GATE_BASE_PROMPT  optional SCW_TRIAGE_PROMPT for the base run   (e.g. triage-p2)
 #   LLM_GATE_HEAD_PROMPT  optional SCW_TRIAGE_PROMPT for the head run   (e.g. triage-p3 to see the gate fail)
-#   PYTHON                interpreter for the comparator (default python3; stdlib only)
+#   PYTHON                interpreter command for the comparator (default python3; stdlib only, Python >= 3.9)
 # Results land in evals/triage/results/relative/ (gitignored): base.json, head.json, verdict.json, junit files.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="$root/evals/triage/results/relative"
-python="${PYTHON:-python3}"
+read -r -a python <<<"${PYTHON:-python3}"  # may be a command with arguments, e.g. "uv run --frozen python"
 mkdir -p "$out"
 rm -f "$out"/*.json "$out"/*.xml
 
@@ -74,5 +74,5 @@ run_suite head "$root" "${LLM_GATE_HEAD_PROMPT:-}"
 
 policy="$base_dir/configs/llm/release_policy.toml"
 [[ -f "$policy" ]] || policy="$root/configs/llm/release_policy.toml"
-"$python" "$root/scripts/llm_gate_compare.py" --base "$out/base.json" --head "$out/head.json" \
+"${python[@]}" "$root/scripts/llm_gate_compare.py" --base "$out/base.json" --head "$out/head.json" \
   --policy "$policy" --base-name "$base_name" --head-name "$head_name" --json-out "$out/verdict.json"
