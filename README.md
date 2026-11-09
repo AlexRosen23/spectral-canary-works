@@ -69,7 +69,7 @@ make web              # control room  http://127.0.0.1:5121
 | command | what it does |
 |---|---|
 | `make start` | **one port for everything:** builds what is missing, then the gateway, its read-only contract and the built control room on http://127.0.0.1:5120 (what the Constellation's launcher runs) |
-| `make test` | 49 Python tests (plus 5 web unit tests via `npm test`): unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
+| `make test` | 66 Python tests (plus 5 web unit tests via `npm test`), incl. 16 for the LLM lane: unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
 | `make eval` | held-out metrics table for every version |
 | `make chaos-replay` | 10 seeded failure scenarios with expected outcomes |
 | `make loadtest` | real HTTP load test at fixed concurrency levels; raw per-request results saved |
