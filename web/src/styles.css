@@ -165,3 +165,9 @@ button.link { background: none; border: none; color: var(--series-1); padding: 0
 .boot { max-width: 560px; margin: 15vh auto; text-align: center; color: var(--text-secondary); }
 .foot { color: var(--text-muted); font-size: 11.5px; text-align: center; padding: 8px 0 24px; }
 @media (max-width: 600px) { .app { padding: 16px; } .kv { grid-template-columns: 1fr; } }
+
+/* LLM triage lane */
+.llm-releases tr.on td { background: color-mix(in srgb, var(--series-1) 10%, transparent); }
+.llm .good { color: var(--good); } .llm .critical { color: var(--critical); }
+.llm h3 { font-size: 13px; margin: 10px 0 6px; }
+a.badge { text-decoration: none; }
