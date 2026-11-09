@@ -1,0 +1,12 @@
+.git
+.venv
+var
+web/node_modules
+web/dist
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+infra/**/.terraform
+*.tfstate*
+.env

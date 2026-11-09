@@ -1,0 +1,3 @@
+# gitleaks: default rules. Add allowlist entries only after confirming by hand that a finding is not a real secret.
+[extend]
+useDefault = true

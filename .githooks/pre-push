@@ -1,0 +1,29 @@
+#!/bin/sh
+# 1. gitleaks scans every commit being pushed that the remote does not already have.
+# 2. main changes through pull requests. A direct push to main is refused unless
+#    ALLOW_MAIN_PUSH=1 is set for that one command (see CONTRIBUTING.md).
+remote="$1"
+zero=0000000000000000000000000000000000000000
+GITLEAKS=$(command -v gitleaks 2>/dev/null || echo "$HOME/.local/bin/gitleaks")
+if [ ! -x "$GITLEAKS" ]; then
+  echo "pre-push: gitleaks is not installed, so the push is blocked (see CONTRIBUTING.md)." >&2
+  exit 1
+fi
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ] && [ "${ALLOW_MAIN_PUSH:-}" != "1" ]; then
+    echo "pre-push: direct pushes to main (including deleting it) are refused. Push a branch and open a pull request." >&2
+    echo "          Deliberate exception (for example a reviewed release): ALLOW_MAIN_PUSH=1 git push ..." >&2
+    exit 1
+  fi
+  [ "$local_sha" = "$zero" ] && continue   # branch deletion: nothing to scan
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha --not --remotes=$remote"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  if ! "$GITLEAKS" git --redact --no-banner --log-level warn --log-opts="$range" .; then
+    echo "pre-push: possible secret in the commits being pushed (values redacted above). Push blocked." >&2
+    exit 1
+  fi
+done
+exit 0

@@ -13,3 +13,23 @@ web/dist/
 infra/**/*.tfvars
 !infra/**/*.tfvars.example
 coverage/
+
+# --- baseline added by new-github-project.sh: never commit secrets, local data or dependencies ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets*
+*.sqlite
+*.sqlite-*
+*.db
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# local editor/agent config
+.claude/
+*.tsbuildinfo

@@ -1,0 +1,52 @@
+# Release policy. Every number the controller uses to block, pause, promote or roll back lives here and
+# is covered by tests (tests/test_gates.py, tests/test_guardrails.py). The policy file's SHA-256 is
+# recorded on every release so a decision can be traced to the exact policy that made it.
+
+[offline_gate]
+# Non-inferiority vs the current champion on the frozen test split.
+max_pr_auc_drop = 0.03          # candidate PR-AUC >= champion PR-AUC - 0.03
+max_recall_drop = 0.05          # at each model's own validation-chosen threshold
+max_f1_drop = 0.04
+max_ece = 0.05                  # calibration error ceiling
+# A slice gate catches defects concentrated in one segment; slices with fewer positives are skipped
+# (reported as "insufficient_support") instead of being judged on noise.
+max_slice_recall_drop = 0.12
+min_slice_positives = 25
+latency_p95_budget_ms = 50.0    # single-row in-process model latency, measured interleaved with the champion
+latency_p95_ratio_vs_champion = 6.0  # fail only if over budget AND > 6x champion (load hits both equally)
+reproducibility_rows = 200      # rows re-scored after load; must match recorded test predictions exactly
+min_test_positives = 100
+
+[shadow]
+min_requests = 400              # shadow comparisons required before canary can start
+max_error_rate = 0.01
+max_score_js_divergence = 0.20  # candidate vs champion score histograms on identical requests
+max_decision_disagreement = 0.15
+
+[canary]
+fraction = 0.10                 # share of request keys routed to the candidate
+window_requests = 1500          # guardrails are evaluated every N routed requests (logical clock)
+min_candidate_requests = 120    # per window, before any quality judgement
+min_labeled_positives_per_arm = 20  # floor only; the decision itself needs McNemar p < 0.01
+max_error_rate = 0.02           # candidate-arm error budget per window
+# Latency guardrail on the candidate's own model-call time. Breach needs BOTH: over the absolute budget
+# AND more than N x the champion's model-call p95 in the same window, so whole-machine slowdowns (which
+# hit both arms) do not roll back a healthy candidate.
+latency_p95_budget_ms = 50.0
+latency_p95_ratio_vs_champion = 6.0
+# Label-free early warning: flagged-rate ratio between arms (arms are randomized by request key).
+max_flag_rate_ratio_drop = 0.35 # candidate flag rate < (1 - 0.35) x champion flag rate -> breach
+# Labeled guardrail (paired): on candidate-served labeled frauds, the champion is also scored; breach when
+# exact one-sided McNemar p < 0.01 and candidate recall - champion recall < -margin.
+recall_noninferiority_margin = 0.0
+healthy_windows_to_promote = 2
+on_breach = "rollback"          # "rollback" | "pause"
+require_human_approval = true   # promotion needs a release_manager approval
+stale_after_seconds = 900       # no new routed traffic for this long -> evidence is stale, no promotion
+stuck_after_seconds = 1800      # a release with no controller heartbeat for this long is reverted to champion
+
+[serving]
+model_timeout_ms = 500.0        # a model call slower than this is abandoned (candidate -> champion fallback)
+
+[rollback]
+verification_requests = 50      # real champion predictions that must succeed after a rollback

@@ -1,0 +1,27 @@
+# DELIBERATELY DEGRADED candidate (for the rollback demonstration). Same model code as v2, but retrained
+# from a "fresh" 30-day label snapshot instead of the 90-day matured one. In this synthetic world,
+# chargebacks on high-value card-not-present transactions take longer than 30 days to arrive, so in the
+# fresh snapshot those frauds are still labeled 0. The defect is a real data change applied to real
+# training rows; nothing about the model's outputs is hand-edited.
+version = "v3-hgb-fresh"
+model_name = "txn-risk"
+family = "hgb_calibrated"
+seed = 7
+owner = "ml-platform-demo (fixture owner, not a real team)"
+intended_use = "Rank card transactions for manual fraud review; score is a calibrated probability."
+change_summary = "Retrained on a fresher 30-day label snapshot (more recent data, immature labels)."
+deliberately_degraded = true
+
+[params]
+max_iter = 200
+learning_rate = 0.08
+max_leaf_nodes = 31
+l2_regularization = 1.0
+calibration = "isotonic"
+calibration_cv = 3
+
+[data_change]
+kind = "label_snapshot_immature"
+description = "Positives on card-not-present transactions above amount_gt USD have not matured and are labeled 0."
+card_present = false
+amount_gt = 1200.0

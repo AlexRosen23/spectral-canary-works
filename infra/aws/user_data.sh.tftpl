@@ -1,0 +1,8 @@
+#!/bin/bash
+# Boot script: install Docker, pull the immutable image from ECR, run the gateway as non-root.
+set -euo pipefail
+dnf install -y docker
+systemctl enable --now docker
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
+docker run -d --name scw-gateway --restart unless-stopped --read-only --tmpfs /tmp \
+  --security-opt no-new-privileges:true --cap-drop ALL -p 5120:5120 -e SCW_ENABLE_CHAOS=0 ${image}
