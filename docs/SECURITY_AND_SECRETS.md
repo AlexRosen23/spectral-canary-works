@@ -30,6 +30,19 @@ any test. CI needs no secrets.
 - **Dependencies:** `uv.lock` / `package-lock.json` pin every version. CI runs `pip-audit`, `npm audit`, and
   Trivy filesystem + image scans.
 
+## Accepted risks (scanner exceptions)
+
+Trivy's filesystem scan runs in CI with `--severity HIGH,CRITICAL --exit-code 1`. Two findings in the optional,
+**not provisioned** AWS path are accepted on purpose and suppressed inline, rule by rule, next to the code they
+cover (`#trivy:ignore:<rule>` in `infra/aws/main.tf`). Nothing else is suppressed.
+
+| rule | finding | why it is accepted | what would remove it |
+|---|---|---|---|
+| AVD-AWS-0164 (HIGH) | the subnet assigns public IPs | there is no NAT gateway; the public IP is the instance's path to ECR and SSM. Inbound is only port 5120 from `operator_cidr`, there is no SSH, and IMDSv2 is required | a private subnet with VPC endpoints and SSM port forwarding, estimated at ~US$43/month vs ~US$10–11 (`CLOUD_COSTS.md`) |
+| AVD-AWS-0104 (CRITICAL) | the security group allows egress to any IP | the egress is TCP 443 only; ECR, S3 and SSM have no fixed IP ranges to pin | the same VPC-endpoint variant, with egress limited to the VPC CIDR |
+
+Both decisions belong to the owner if the AWS path is ever provisioned (ADR-7).
+
 ## Rotating local secrets
 
 Delete `var/secrets/operators.local.json` and run `scw setup` to issue new tokens; restart the gateway.

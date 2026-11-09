@@ -57,8 +57,9 @@ This project builds and measures a full answer to three operational questions:
   `insufficient` and promotion stays blocked ([`monitor.py`](src/spectral_canary/monitor.py)).
 - **Count the independent unit.** Requests from one card are correlated; guardrail statistics use one
   observation per card. This rule was learned the hard way (see [How it was built](#how-it-was-built)).
-- **Drift raises an alert, never a rollback.** Rollback needs evidence that the candidate is worse than the
-  champion on comparable traffic.
+- **In the ML lane, drift raises an alert, never a rollback.** Rollback needs evidence that the candidate is
+  worse than the champion on comparable traffic. (The LLM lane treats major input drift differently, on purpose;
+  see [How it works](#the-llm-lane-same-controller-different-evidence).)
 - **Rollback is a pointer swap, not a redeploy.** One compare-and-swap of the deployment pointer, in the same
   SQLite transaction as its audit event, followed by verification through real predictions
   ([`store.py`](src/spectral_canary/store.py), [`controller.py`](src/spectral_canary/controller.py)).
@@ -118,7 +119,7 @@ rollbacks it drives are real executions of this code.
 | Prometheus metrics, SSE event stream, redacted JSON logs, trace IDs | Working | `/metrics` checked in CI's container smoke test |
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
 | OpenTofu `infra/local` (Docker provider) | Working, local | applied and destroyed against local Docker during the build; `fmt` + `validate` in CI |
-| OpenTofu `infra/aws` (ECR + one `t4g.micro`, SSM, IMDSv2, Budgets) | Partial: validated, **not provisioned** | `fmt` + `validate` only; `scripts/aws_deploy.sh` refuses to run without `SCW_CONFIRM_BILLABLE=yes`. $0 spent. |
+| OpenTofu `infra/aws` (ECR + one `t4g.micro`, SSM, IMDSv2, Budgets) | Partial: validated, **not provisioned** | `fmt` + `validate` only; `scripts/aws_deploy.sh` refuses to run without `SCW_CONFIRM_BILLABLE=yes`. $0 spent. Two documented, accepted Trivy findings (public IP, HTTPS egress) |
 | GitHub Actions CI (5 jobs + a path-filtered LLM gate) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
 | Read-only contract for dashboards (`/health`, `/capabilities`, `/runs`) | Working | `make start` checked on 2026-11-09 (`/health` ok, `/runs` lists the runs); the owner's Constellation reads it |
 | **LLM lane:** prompt bundles as immutable, hashed, signed releasable units with the Ollama weights digest pinned | Working | `tests/test_llm_lane.py` (tampered prompt and changed weights digest both blocked) |
@@ -212,18 +213,19 @@ flowchart LR
    test split. v3 is within every margin (PR-AUC 0.600 vs v2's 0.620, margin 0.03) and passes.
 3. **Stage and shadow.** The artifact is loaded and smoke-tested. In shadow mode the champion answers every
    request and v3 scores it afterwards, recorded only. The shadow gate needs at least 400 requests, an error
-   rate of 1% or less, score JS divergence of 0.20 or less, and decision disagreement of 15% or less. v3
-   measured 0.011 and 0.5%.
+   rate of 1% or less, score JS divergence of 0.20 or less, and decision disagreement of 15% or less. Over 600
+   shadow requests v3 measured JS 0.011 and 0.5% disagreement.
 4. **Canary.** The pointer moves to `mode=canary, fraction=0.10`.
    [`serving.py`](src/spectral_canary/serving.py) routes by `sha256(salt:request_key) mod 10000`, so the same
    card always lands in the same arm. Each request runs on one immutable snapshot of the pointer, in its own
    thread pool per arm, with a 500 ms timeout. On candidate requests the champion is also scored, and the
    result is recorded for the paired test.
 5. **Guardrails.** Every 1,500 routed requests (a logical clock, so replays are deterministic),
-   [`monitor.py`](src/spectral_canary/monitor.py) evaluates the window. Windows 1–3 were healthy. The simulated
-   surge then starts. Window 3 raises a `drift.alert` (PSI 2.2); drift alone doesn't act. In window 4, paired
-   labeled evidence shows v3 catching 65 of 112 frauds that v2 would have caught 83 of. Exact one-sided
-   McNemar p = 0.0015 < 0.01, which is a breach.
+   [`monitor.py`](src/spectral_canary/monitor.py) evaluates the window. Windows 1 and 2 (baseline traffic)
+   were healthy. Then the simulated surge starts. Window 3 is still healthy but raises a `drift.alert`
+   (max PSI 2.2), and drift alone doesn't act. In window 4, on 112 labeled frauds served by v3, v3 caught 65,
+   and v2, scored on the same requests, would have caught 83. Exact one-sided McNemar p = 0.0015 < 0.01: a
+   breach.
 6. **Rollback.** [`Controller.rollback`](src/spectral_canary/controller.py) swaps the pointer back
    (`candidate=None, mode=none`) with compare-and-swap on the deployment generation, in the same transaction
    as the release state change and the `rollback.executed` event. In-flight requests finish on the snapshot
@@ -257,9 +259,9 @@ is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 ## How it was built
 
 Built by Claude Code sessions on 2026-11-08 and 2026-11-09 from a written spec with five phases, then a
-"production proof" addendum (Docker, IaC, load tests, ADRs, CI, an interop contract). Rule from the spec: a
-working vertical slice first (real trained models and one real inference by the end of phase A), with no
-invented metrics.
+"production proof" addendum (Docker, IaC, load tests, ADRs, CI, an interop contract), then an LLM release
+lane. Rule from the spec: a working vertical slice first (real trained models and one real inference by the end
+of phase A), with no invented metrics.
 
 ### Phases and milestones
 
@@ -292,6 +294,9 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 - **skops with a type allowlist, not pickle** (ADR-6). New model families need their types reviewed.
 - **No Kubernetes** (ADR-2). One CPU-bound gateway doesn't justify a control plane, and an empty manifest
   would only be decoration.
+- **The LLM lane reuses this registry and controller instead of MLflow** (ADR-9). The point of the lab is the
+  release controller (CAS pointer swaps, separation of duties, paired online guardrails), which MLflow's
+  mutable prompt aliases don't provide. An MLflow export is described but not implemented.
 - **AWS path on one EC2 instance, not provisioned** (ADR-7). It is estimated at about US$10–11/month and
   stays off until the owner approves spending.
 
@@ -308,17 +313,18 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | **open**; a saturation-aware pause is proposed |
 | The UI requested a postmortem for a load-test run (404) | it took the newest run, not the newest demo | read the latest demo run (PR #2) |
 | LLM lane: a symmetric pass rate would have shipped both bad candidates | the regressed prompt and the model swap had equal or higher overall escalate accuracy than the champion (61.3% and 69.3% vs 62.0%), because under-escalating wins on the should-not-escalate cases | gate on recall for must-escalate alerts, overall and per segment; the promptfoo suite was rewritten the same way (PR #3) |
-| LLM lane: the first recorded run "failed" | a hypothesis about the 12-case smoke subset was written as an expected outcome | the smoke result became a recorded observation, not an expectation (`6d89c4d`); the rerun passed with the same four decisions |
+| LLM lane: the first recorded run "failed" | a hypothesis about the 12-case smoke subset was written as an expected outcome | the smoke result became a recorded observation, not an expectation (`6d89c4d`); the rerun (offline suites reused, same bundle hashes) passed with the same four decisions |
 | LLM lane: a "no-op" `num_ctx` change failed in canary | one Ollama server holding two context sizes of the same model reloads it on every switch | a real finding, not a bug: the same-window latency SLO caught it and rolled back |
 | CI had never actually run | the workflow wasn't valid YAML (an unquoted `:` in a step name), so GitHub couldn't read its triggers and refused `workflow_dispatch` | quoted in PR #3; PR #4 adds `make workflow-lint` (actionlint) so it can't recur |
 | First CI run: pip-audit failed | `uv export` listed the project itself, which isn't on PyPI | `--no-emit-project` (PR #4) |
 | First CI run: Trivy failed the image | 2 CRITICAL CVEs in Debian 12 with no fixed package (libsqlite3 CVE-2025-7458, zlib CVE-2023-45853) | base image moved to `python:3.12-slim-trixie` (Debian 13) (PR #4) |
+| Second CI run: Trivy's filesystem scan failed on misconfigurations | the web image relied on its base image's non-root user without saying so; the AWS path has a public-IP subnet and HTTPS egress to any address | `USER 101:101` in `web/Dockerfile`; the two AWS findings are documented accepted risks with a costed alternative (~$43/month), suppressed per rule inline ([`docs/SECURITY_AND_SECRETS.md`](docs/SECURITY_AND_SECRETS.md)) (PR #4) |
 
 Designing the degraded candidate also took iteration. It had to pass the offline gate *honestly* and fail
 under shift for a stated, mechanistic reason. The first generator's signal was too weak to separate
 the models. The final v3 is a label-maturity bug. In training, the 93 card-not-present rows above $1,200
-included 77 frauds, and all 77 were relabeled 0. v4 (a data filter that dropped 819 high-value card-not-present rows) is the contrast case: it is
-caught offline.
+included 77 frauds, and all 77 were relabeled 0. v4 is the contrast case: a data filter dropped 819
+high-value card-not-present rows, and the offline gate catches it.
 
 ## Results and evidence
 

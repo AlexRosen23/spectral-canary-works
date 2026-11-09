@@ -31,8 +31,13 @@ resource "aws_internet_gateway" "igw" {
 }
 
 resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.42.0.0/26"
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.42.0.0/26"
+  # Accepted risk (ADR-7, docs/SECURITY_AND_SECRETS.md): no NAT gateway and no VPC endpoints, to keep the path at
+  # ~$10-11/month. The public IP is how the instance reaches ECR and SSM; inbound is only port 5120 from
+  # var.operator_cidr. The no-public-IP alternative (private subnet + 5 interface endpoints + S3 gateway endpoint,
+  # access via SSM port forwarding) is estimated at ~$43/month in docs/CLOUD_COSTS.md.
+  #trivy:ignore:AVD-AWS-0164
   map_public_ip_on_launch = true
 }
 
@@ -65,6 +70,9 @@ resource "aws_security_group" "gateway" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
+    # Accepted risk (ADR-7): HTTPS only. ECR, S3 and SSM have no fixed IP ranges to pin; VPC endpoints would allow
+    # restricting egress to the VPC CIDR (the ~$43/month alternative above).
+    #trivy:ignore:AVD-AWS-0104
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
