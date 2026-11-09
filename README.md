@@ -6,18 +6,21 @@ offline gate, shadow scoring, a 10% sticky canary and promotion, behind a FastAP
 predictions. One candidate passes every offline check and then fails under a **simulated** shift in traffic.
 The controller detects this from paired, labeled evidence, rolls traffic back to the previous model with one
 atomic pointer swap, confirms with real predictions that recovery worked, and writes a postmortem from its own
-hash-chained audit log. It is for engineers and reviewers who want to see, and rerun, the engineering between
-"the model scores well" and "the model is safe to serve", with every number traceable to a recorded run.
+hash-chained audit log. A second lane puts an LLM component (a fraud-alert triage prompt on a local
+`llama3.2:3b` via Ollama) through the same registry, controller, audit chain and rollback path. It is for
+engineers and reviewers who want to see, and rerun, the engineering between "the model scores well" and "the
+model is safe to serve", with every number traceable to a recorded run.
 
 ## At a glance
 
 | | |
 |---|---|
-| **Status** | Working, local-first. Release pipeline, guardrails, rollback, chaos suite, load test, Docker stack and UI all run. Nothing is deployed to any cloud. |
-| **Stack** | Python 3.12 (uv), FastAPI, scikit-learn, skops, SQLite (WAL); React + Vite + TypeScript UI; Docker, Prometheus, Grafana; OpenTofu |
-| **Run it** | `make setup && make demo` (full release story over real HTTP), or `make start` (UI + API on http://127.0.0.1:5120) |
-| **Data and traffic** | Synthetic data from a documented seeded generator. Request traffic is a seeded **simulation**, labeled `simulated` on every request, event and screen. |
-| **Verified** | 2026-11-09 against `main` at `d69f2e4` plus this PR's CI and docs changes ([how](#testing-and-ci)) |
+| **Status** | Working, local-first. ML lane: release pipeline, guardrails, rollback, chaos suite, load test, Docker stack and UI. LLM lane: prompt-bundle registry, eval gate, canary with SLOs, rollback, promptfoo gate. Nothing is deployed to any cloud. |
+| **Stack** | Python 3.12 (uv), FastAPI, scikit-learn, skops, SQLite (WAL); Ollama (local), promptfoo, OpenTelemetry; React + Vite + TypeScript UI; Docker, Prometheus, Grafana; OpenTofu; GitHub Actions |
+| **Run it** | `make setup && make demo` (full ML release story over real HTTP), or `make start` (UI + API on http://127.0.0.1:5120) |
+| **Data and traffic** | Synthetic data from documented seeded generators. Request and alert traffic is a seeded **simulation**, labeled `simulated` on every request, event and screen. LLM-lane labels come from a rule table, not from people. |
+| **AI Engineer reviewers** | Start at [LLM release lane results](#llm-release-lane-for-ai-engineer-reviewers) |
+| **Verified** | 2026-11-09 against `main` at `b27bc04` plus this PR's CI and docs changes ([how](#testing-and-ci)) |
 
 ## Why this exists
 
@@ -64,6 +67,19 @@ This project builds and measures a full answer to three operational questions:
 - **Every decision leaves evidence.** Events are append-only and hash-chained, each release records the policy
   file's SHA-256, and the postmortem is generated from the events, not written by hand.
 
+### Why the same machinery for an LLM
+
+A prompt edit, a model swap or a serving-parameter change is a release too, and it fails in the same ways. The
+LLM lane (merged in [PR #3](https://github.com/AlexRosen23/spectral-canary-works/pull/3)) tests whether the
+controller's ideas hold when the "model" is a prompt bundle (prompt + model tag + pinned weights digest +
+sampling parameters, hashed and signed as one unit). Its recorded runs show two things:
+- **An aggregate score hides an asymmetric regression.** A prompt with one escalation rule removed kept its
+  overall pass^3 inside the margin. Escalation recall on must-escalate alerts, overall and per segment, is what
+  blocked it.
+- **A configuration-only change can fail in production for a real reason.** Raising `num_ctx` from 2048 to 4096
+  gave identical answers offline. In the canary, the shared Ollama server reloaded the model on every switch
+  between the two context sizes, and the latency SLO rolled the change back.
+
 ### What it answers
 
 The engineering question is: *can a release process catch a regression that passes every offline check,
@@ -103,16 +119,26 @@ rollbacks it drives are real executions of this code.
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
 | OpenTofu `infra/local` (Docker provider) | Working, local | applied and destroyed against local Docker during the build; `fmt` + `validate` in CI |
 | OpenTofu `infra/aws` (ECR + one `t4g.micro`, SSM, IMDSv2, Budgets) | Partial: validated, **not provisioned** | `fmt` + `validate` only; `scripts/aws_deploy.sh` refuses to run without `SCW_CONFIRM_BILLABLE=yes`. $0 spent. |
-| GitHub Actions CI (5 jobs) | Working | enabled 2026-11-09; first real run is on this README's PR ([Testing and CI](#testing-and-ci)) |
-| Read-only contract for dashboards (`/health`, `/capabilities`, `/runs`) | Working | `scripts/check_contract.py`; the owner's Constellation reads it |
+| GitHub Actions CI (5 jobs + a path-filtered LLM gate) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
+| Read-only contract for dashboards (`/health`, `/capabilities`, `/runs`) | Working | `make start` checked on 2026-11-09 (`/health` ok, `/runs` lists the runs); the owner's Constellation reads it |
+| **LLM lane:** prompt bundles as immutable, hashed, signed releasable units with the Ollama weights digest pinned | Working | `tests/test_llm_lane.py` (tampered prompt and changed weights digest both blocked) |
+| **LLM lane:** offline eval gate (150 gold cases × 3 seeded tries, code graders, pass^3, per-segment escalation recall, non-inferiority) | Working (rule-derived labels) | recorded run [`llm-demo-20261109-130256`](docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md): p3 and the qwen swap blocked; gold set checked by `make llm-gold` (rerun 2026-11-09) |
+| **LLM lane:** shadow + 10% canary with online code grading, paired McNemar, p95 latency and token-cost SLOs, input-drift trigger | Working (simulated alerts, real local model calls) | same recorded run: p2 promoted after 2 healthy windows; ctx4k rolled back on the latency SLO |
+| **LLM lane:** automatic rollback (same controller), 20 verification calls, generated postmortem | Working | [`postmortem-llm-rel-0004.md`](docs/evidence/llm/llm-demo-20261109-130256/postmortem-llm-rel-0004.md); `test_llm_release_story_in_process` (scripted test double) |
+| **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); TODO_LLMGATE |
+| **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
+| LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
 | Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Not built | open finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
 | Multi-replica controller, Postgres registry, sequential testing (mSPRT), real identity provider | Not built | described as upgrades in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DECISIONS.md) |
 
 ## Quick start
 
 **Requirements:** macOS or Linux, [uv](https://docs.astral.sh/uv/) (Python 3.12 is installed by uv), Node 22
-and npm, `make`. Docker is optional (only for `make up`, `make docker-build` and `make iac-validate`). No cloud
-account, API key or GPU.
+and npm, `make`. Docker is optional (only for `make up`, `make docker-build`, `make iac-validate` and
+`make workflow-lint`). [Ollama](https://ollama.com) with `llama3.2:3b` is needed only for the LLM lane's live
+commands (`make llm-gate`, `make llm-eval`, `make llm-demo`; `make llm-demo` also needs `qwen2.5-coder:3b`). The
+LLM lane's tests use a scripted test double, so `make test` doesn't need Ollama. No cloud account, API key or
+GPU.
 
 ```bash
 make setup            # uv sync + npm ci; creates local operator tokens and a signing key in var/secrets (gitignored)
@@ -139,6 +165,10 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | `make up` / `make down` | Docker stack: gateway :5120, UI :5121, simulated traffic, Prometheus :5122, Grafana :5123 / full teardown |
 | `make iac-validate` | OpenTofu `fmt` + `validate` for `infra/local` and `infra/aws` (no plan, no apply) |
 | `make workflow-lint` | actionlint on `.github/workflows` (Docker) |
+| `make llm-gold` | check the committed triage gold set against its seeded generator (seconds) |
+| `make llm-gate` | promptfoo regression suite (pinned 0.125.1) against local Ollama; fails under the 90% pass-rate threshold |
+| `make llm-eval B=<bundle>` | offline suite for one prompt bundle (150 cases × 3 tries, real local model calls) |
+| `make llm-demo` | the LLM lane story over real HTTP on :5141 with real local model calls (about 2 h on the build laptop when every suite runs live) |
 
 `make start` also trains, builds the UI and records an in-process demo run first, if any of those are
 missing. Both `make demo` and `make start` need a free port: if 5120 is taken, `make demo` refuses to start
@@ -164,6 +194,9 @@ flowchart LR
   ctl["controller.py<br/>state machine"] -->|gates.py / monitor.py| db
   ctl -->|"CAS pointer swap<br/>+ audit event"| db
   ctl --> pm["postmortem.py<br/>from events"]
+  client2["alert triage client<br/>(simulated alerts)"] -->|POST /v1/llm/triage| api
+  api --> llm["llm/service.py<br/>bundle router · JSON contract · fallback"]
+  llm -->|"champion / candidate bundle"| ollama["Ollama<br/>(local llama3.2:3b)"]
   ui["web/ control room"] -->|"/v1/* + SSE"| api
   prom["Prometheus / Grafana"] -->|/metrics| api
 ```
@@ -199,6 +232,24 @@ flowchart LR
    (`rollback.verified`). 200 more shifted requests are all served by v2.
    [`postmortem.py`](src/spectral_canary/postmortem.py) then writes the postmortem from the event log.
 
+### The LLM lane: same controller, different evidence
+
+[`llm/controller.py`](src/spectral_canary/llm/controller.py) subclasses the ML `Controller` and only supplies
+LLM evidence through its hooks: offline gate, staging smoke, shadow summary, window evaluation, verification
+payloads and postmortem. How a release moves, swaps its pointer, records events and rolls back is the same code.
+The LLM-specific parts are:
+- [`llm/bundles.py`](src/spectral_canary/llm/bundles.py): the bundle as one canonical, hashed, signed JSON;
+- [`llm/gates.py`](src/spectral_canary/llm/gates.py) with [`llm/graders.py`](src/spectral_canary/llm/graders.py)
+  and [`llm/evals.py`](src/spectral_canary/llm/evals.py): code graders, pass^3 and per-segment escalation recall
+  against the champion on the same cases and seeds;
+- [`llm/monitor.py`](src/spectral_canary/llm/monitor.py): online grading, paired McNemar on must-escalate alerts,
+  latency and token-cost SLOs against the same-window champion arm, and an input-drift trigger;
+- [`llm/otel.py`](src/spectral_canary/llm/otel.py): OpenTelemetry GenAI metrics.
+
+One deliberate difference: in the LLM lane, a major input drift *is* a rollback trigger, because the offline evidence
+that justified the canary no longer describes the traffic. The full design is in
+[`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md).
+
 The rules and every threshold are in [`docs/RELEASE_POLICY.md`](docs/RELEASE_POLICY.md); the mechanics and
 the failure-mode table are in [`docs/RELEASE_AND_ROLLBACK.md`](docs/RELEASE_AND_ROLLBACK.md); the module map
 is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -221,7 +272,9 @@ invented metrics.
 | E. Packaging + production proof | Dockerfile, compose stack with Prometheus/Grafana, OpenTofu local + AWS, load test + SLOs, ADRs, runbooks, `model_artifact_v1` contract, evidence file, CI workflow | PR #1 (`dc464b9`, `f015610`, `a760635`), merged 2026-11-09 |
 | Integration | read-only `/health` `/capabilities` `/runs` contract; UI and API on one port; `scripts/start.sh` | [PR #2](https://github.com/AlexRosen23/spectral-canary-works/pull/2), merged 2026-11-09 |
 | Constellation | world "The Canary Control Room" in the owner's Constellation dashboard, which starts the app on demand | AlexRosen23/constellation#359 and #360 (private repo) |
-| CI + write-up | Actions enabled; the workflow made valid and green; this README | [PR #4](https://github.com/AlexRosen23/spectral-canary-works/pull/4) |
+| LLM release lane | controller hooks; prompt bundles, gold set, code graders, eval gate, online SLOs, OTel GenAI metrics, promptfoo gate, control-room panel, recorded runs, ADR-9 (why not MLflow) | [PR #3](https://github.com/AlexRosen23/spectral-canary-works/pull/3), merged 2026-11-09 |
+| License + visibility | the MIT `LICENSE` file; the repository made public on the owner's OK | [PR #5](https://github.com/AlexRosen23/spectral-canary-works/pull/5), 2026-11-09 |
+| CI + write-up | Actions enabled; CI fixed and green on its first real runs; this README | [PR #4](https://github.com/AlexRosen23/spectral-canary-works/pull/4) |
 
 ### Key decisions and trade-offs
 
@@ -254,7 +307,10 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | **The c=32 load test rolled back a healthy model** | 146 candidate requests came from only 38 cards, and the flag-rate CI treated them as independent | all guardrail statistics count one observation per card; regression test (`f015610`) |
 | The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | **open**; a saturation-aware pause is proposed |
 | The UI requested a postmortem for a load-test run (404) | it took the newest run, not the newest demo | read the latest demo run (PR #2) |
-| CI had never actually run | the workflow wasn't valid YAML (an unquoted `:` in a step name), so GitHub couldn't read its triggers and refused `workflow_dispatch` | quoted it and added `make workflow-lint` (PR #4) |
+| LLM lane: a symmetric pass rate would have shipped both bad candidates | the regressed prompt and the model swap had equal or higher overall escalate accuracy than the champion (61.3% and 69.3% vs 62.0%), because under-escalating wins on the should-not-escalate cases | gate on recall for must-escalate alerts, overall and per segment; the promptfoo suite was rewritten the same way (PR #3) |
+| LLM lane: the first recorded run "failed" | a hypothesis about the 12-case smoke subset was written as an expected outcome | the smoke result became a recorded observation, not an expectation (`6d89c4d`); the rerun passed with the same four decisions |
+| LLM lane: a "no-op" `num_ctx` change failed in canary | one Ollama server holding two context sizes of the same model reloads it on every switch | a real finding, not a bug: the same-window latency SLO caught it and rolled back |
+| CI had never actually run | the workflow wasn't valid YAML (an unquoted `:` in a step name), so GitHub couldn't read its triggers and refused `workflow_dispatch` | quoted in PR #3; PR #4 adds `make workflow-lint` (actionlint) so it can't recur |
 | First CI run: pip-audit failed | `uv export` listed the project itself, which isn't on PyPI | `--no-emit-project` (PR #4) |
 | First CI run: Trivy failed the image | 2 CRITICAL CVEs in Debian 12 with no fixed package (libsqlite3 CVE-2025-7458, zlib CVE-2023-45853) | base image moved to `python:3.12-slim-trixie` (Debian 13) (PR #4) |
 
@@ -317,6 +373,47 @@ uvicorn process; closed-loop clients; simulated payloads.
 Peak throughput was 390.9 rps (champion only, c=4). The canary costs about 2× per candidate request, because
 of the paired champion call. These are relative numbers from a loaded laptop, not capacity planning figures.
 
+### LLM release lane (for AI Engineer reviewers)
+
+The 60-second path. A fraud-alert triage prompt (local `llama3.2:3b` via Ollama, structured JSON output) goes
+through the *same* registry, controller, audit chain and rollback path as the ML models. The releasable unit is a
+hashed, signed **prompt bundle**: prompt + model + pinned weights digest + parameters.
+
+1. **Read the recorded run:** [`docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md`](docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md).
+   It is generated from the run files: real Ollama calls over real HTTP, simulated alerts. Reproduce it with
+   `make llm-demo`, or run `make test` for the same story against a scripted test double in seconds.
+2. **Look at:** [`llm/controller.py`](src/spectral_canary/llm/controller.py) (LLM evidence plugged into the ML
+   controller's hooks), [`llm/gates.py`](src/spectral_canary/llm/gates.py) (code graders, pass^3, per-segment
+   escalation recall), [`llm/monitor.py`](src/spectral_canary/llm/monitor.py) (online grading, p95 latency and
+   token-cost SLOs, input-drift trigger), [`evals/triage/promptfooconfig.yaml`](evals/triage/promptfooconfig.yaml)
+   (the CI regression gate) and [`llm/otel.py`](src/spectral_canary/llm/otel.py) (OpenTelemetry GenAI metrics).
+3. **Headline numbers** (150 gold cases × 3 seeded tries, code graders only; rule-derived labels, not human):
+
+| release | outcome | evidence (offline: 150 cases × 3 tries; online: 10% canary, 200-request windows) |
+|---|---|---|
+| `triage-p1` → `triage-p2` (same policy, greedy decoding) | **promoted** | escalation recall 75.2% → 83.3%, pass^3 31.3% → 36.7%; shadow + 2 healthy canary windows; release-manager approval (self-approval refused, 403) |
+| `triage-p3` (one escalation rule dropped) | **blocked offline** | escalation recall 40.9% vs 83.3%, all three segment checks failed. Its pass^3 (34.0%) was inside the margin: an aggregate score alone would have shipped it |
+| `triage-p2-qwen` (model swap to qwen2.5-coder:3b) | **blocked offline** | 4.6% cheaper and 13% lower offline p95, but escalation recall 42.4% vs 83.3% |
+| `triage-p2-ctx4k` (`num_ctx` 2048 → 4096 only) | **rolled back automatically** | identical answers offline; in canary the shared Ollama server reloaded the model on every switch: candidate p95 2,830 ms vs 1,342 ms for the champion arm (2.11×, SLO 1.5×); 20/20 verification calls answered by p2; postmortem generated |
+
+Source: run `llm-demo-20261109-130256` (commit `6d89c4d`, 1,408 s, passed). The first, fully live run
+(`llm-demo-20261109-111237`, 110 min) reached the same four decisions. The promptfoo gate (`make llm-gate`,
+threshold 90%) passes the champion prompt at 92.7% and fails the regressed prompt at 74.0% (exit 100):
+[`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/). TODO_LLMGATE_RESULT
+
+Caveats: a 3B local model gets only 37% of whole replies right on this policy (reported, not hidden). Labels are
+rule-derived, graders are code, alert traffic is simulated, and latency comes from a shared laptop.
+
+More: [`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md) (the full write-up) ·
+[`docs/AI_ENGINEER_READINESS.md`](docs/AI_ENGINEER_READINESS.md) (what this does and doesn't evidence for AI
+Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) (walkthrough video).
+
+![LLM lane in the control room: four bundle releases and their gate numbers](docs/media/llm-lane-releases.png)
+
+| automatic rollback of the config-only change, with its generated postmortem | the ML lane in the same control room |
+|---|---|
+| ![rollback](docs/media/llm-lane-rollback.png) | ![ML lane](docs/media/control-room-ml-lane.png) |
+
 ## Limitations and what's next
 
 - **Synthetic data, constructed defect.** The metrics describe this generator, not real fraud. Real fraud
@@ -331,8 +428,12 @@ of the paired champion call. These are relative numbers from a loaded laptop, no
 - **Local controls, not enterprise IAM.** Roles are random bearer tokens with only their hashes stored.
 - **Not deployed.** The AWS path is validated but not provisioned, and $0 has been spent. Provisioning needs
   the owner's approval and an expected cost.
-- **In review:** [PR #3](https://github.com/AlexRosen23/spectral-canary-works/pull/3) adds an LLM release lane
-  (prompt bundles through the same gates, canary and rollback). It is not merged and not described here.
+- **LLM lane: labels and graders.** Labels come from a rule table and graders are code. There is no LLM-as-judge
+  and no human calibration, so the gold set measures whether a prompt follows a written policy, not fraud
+  judgement. 150 cases × 3 tries can't resolve differences of a few points, which is why the margins are wide.
+  **Next:** human-labeled cases and a calibrated judge for the rationale.
+- **LLM lane: small canary windows.** About 20 candidate calls per 200 routed requests, so per-window p95 is
+  noisy. The same-window ratio absorbs whole-machine slowdowns, not variance.
 
 The full list is in [`docs/DRIFT_AND_LIMITATIONS.md`](docs/DRIFT_AND_LIMITATIONS.md).
 
@@ -341,15 +442,18 @@ The full list is in [`docs/DRIFT_AND_LIMITATIONS.md`](docs/DRIFT_AND_LIMITATIONS
 | path | what lives there |
 |---|---|
 | `src/spectral_canary/` | the package: data, training, artifacts, registry, store, serving, gates, monitor, controller, postmortem, API, telemetry, traffic/chaos/load drivers, CLI (`scw`) |
-| `web/` | React + TypeScript control room (hand-written SVG charts, SSE feed, incident replay, reproducibility drawer) |
-| `configs/` | immutable model configs (`models/*.toml`) and `release_policy.toml` (every threshold) |
+| `src/spectral_canary/llm/` | the LLM triage lane: alerts and gold set, bundles, graders, evals, gates, service, monitor, controller hooks, OTel GenAI metrics, postmortem |
+| `web/` | React + TypeScript control room (hand-written SVG charts, SSE feed, incident replay, reproducibility drawer, LLM lane panel) |
+| `configs/` | immutable model configs (`models/*.toml`) and `release_policy.toml` (every threshold); `llm/` holds prompts, bundles and the LLM lane's policy |
+| `evals/triage/` | the triage gold set (generator-checked) and the promptfoo regression suite |
 | `manifests/` | committed dataset and model manifests (hashes, metrics). The artifacts themselves are regenerated, not committed. |
 | `contracts/` | `model_artifact_v1` JSON Schema + example, a framework-neutral artifact contract |
 | `tests/` | unit, API, store/routing, release controller, and end-to-end failure→rollback tests |
 | `scripts/` | `start.sh`, contract check, evidence builder, IaC validation, AWS deploy/teardown (guarded) |
 | `deploy/` | Prometheus scrape config, Grafana datasource and dashboard |
 | `infra/local`, `infra/aws` | OpenTofu: local Docker (applied + destroyed in testing) / AWS (validated, not provisioned) |
-| `docs/` | policy, rollback, drift, data card, architecture, ADRs, threat model, runbooks, load test, costs, postmortem, case study |
+| `docs/` | policy, rollback, drift, data card, architecture, ADRs, threat model, runbooks, load test, costs, postmortem, case study, LLM lane |
+| `docs/evidence/llm/`, `docs/media/` | the LLM lane's recorded runs, gate reports, promptfoo output; control-room screenshots and walkthrough video |
 | `resume_evidence/` | `metrics.json`: every claim with its command, artifact, commit and status |
 | `var/` (gitignored) | generated data, artifacts, registries, event logs, run reports, local secrets |
 
@@ -358,6 +462,8 @@ The full list is in [`docs/DRIFT_AND_LIMITATIONS.md`](docs/DRIFT_AND_LIMITATIONS
 ```bash
 make test        # all Python tests (pytest), incl. e2e failure->rollback in-process and over real HTTP
 make test-fast   # unit tests only (skips the e2e marker)
+make llm-gold    # gold set matches its generator
+make llm-gate    # promptfoo gate against local Ollama (needs llama3.2:3b)
 cd web && npm test
 make ci          # everything CI's python + web jobs run
 ```
@@ -368,7 +474,7 @@ contract check passed, `make verify` passed. The Python suite is slow because th
 release stories (thousands of simulated requests, including one over real HTTP), not because of the unit tests.
 
 **GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs on pull
-requests and manual dispatch, with 5 jobs:
+requests and manual dispatch, with 5 jobs plus a path-filtered LLM gate:
 
 | job | what it checks |
 |---|---|
@@ -377,6 +483,7 @@ requests and manual dispatch, with 5 jobs:
 | `web` | TypeScript typecheck, unit tests, production build |
 | `image` | Docker build (which retrains and re-verifies hashes on Linux), container smoke test, Trivy image scan |
 | `iac` | OpenTofu `fmt` + `validate` (no plan, no apply, no credentials) |
+| `changes` → `llm-gate` | runs only when the LLM lane's prompts, bundles, policy, gold set or code, the Makefile or the workflow change (and on manual dispatch): promptfoo against an Ollama service container pinned by digest, on CPU |
 
 The workflow file had never been valid YAML, so before 2026-11-09 it had never run (see
 [How it was built](#how-it-was-built)). Its first real run, on
@@ -384,10 +491,10 @@ The workflow file had never been valid YAML, so before 2026-11-09 it had never r
 caught two real problems in `security` and `image`, both fixed in that PR. PR #4's checks show the current
 result.
 
-**Cost:** the `python` job is the long one. On a GitHub-hosted runner it took 20.6 minutes in the first run:
-15 min of pytest, 3 min of chaos replay, 1.8 min of the in-process demo. One full CI run uses about 26 billed
-minutes of the shared 2,000 min/month private-repo allowance. That is why CI runs on pull requests and manual
-dispatch only.
+**Duration:** the `python` job is the long one. On a GitHub-hosted runner it took 20.6 minutes in its first run:
+15 min of pytest, 3 min of chaos replay, 1.8 min of the in-process demo. The repository is public, and standard
+GitHub-hosted runners are free for public repositories, so this costs time, not money. CI runs on pull requests
+and manual dispatch only. TODO_CI_DURATION
 
 No job needs a secret.
 
@@ -396,6 +503,7 @@ No job needs a secret.
 - Policy and mechanics: [release policy](docs/RELEASE_POLICY.md) · [release and rollback](docs/RELEASE_AND_ROLLBACK.md) · [drift and limitations](docs/DRIFT_AND_LIMITATIONS.md) · [data card](docs/DATA_CARD.md)
 - Architecture: [code level](docs/ARCHITECTURE.md) · [system](docs/SYSTEM_ARCHITECTURE.md) · [ADRs](docs/ARCHITECTURE_DECISIONS.md) · [threat model](docs/THREAT_MODEL.md) · [security and secrets](docs/SECURITY_AND_SECRETS.md)
 - Operations: [operations runbook](docs/OPERATIONS_RUNBOOK.md) · [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) · [load test results](docs/LOAD_TEST_RESULTS.md) · [cloud costs](docs/CLOUD_COSTS.md) · [incident postmortem](docs/INCIDENT_POSTMORTEM.md)
+- LLM lane: [design and results](docs/LLM_RELEASE_LANE.md) · [AI Engineer readiness](docs/AI_ENGINEER_READINESS.md) · [recorded evidence](docs/evidence/llm/)
 - Write-ups: [public case study](docs/PUBLIC_CASE_STUDY.md) · [interview defense](docs/INTERVIEW_DEFENSE.md) · [recruiter demo](docs/RECRUITER_DEMO.md) · [contributing](CONTRIBUTING.md)
 - Constellation: world `proj:spectral-canary-works`, "The Canary Control Room", in the owner's private Constellation dashboard. It reads `/health`, `/capabilities` and `/runs` and starts the app with `./scripts/start.sh`.
-- License: MIT for the code. The dataset is generated by this code and contains no real people, cards or payments.
+- License: [MIT](LICENSE) for the code. The dataset is generated by this code and contains no real people, cards or payments.

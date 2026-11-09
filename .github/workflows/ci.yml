@@ -1,6 +1,6 @@
-# CI for Spectral Canary Works. ENABLED: the owner turned GitHub Actions on for this private repo on 2026-11-09
-# (it draws on the shared 2,000 Actions min/month for private repos, so it runs on pull requests and manual
-# dispatch only, never on every push). Every job here also runs locally: `make ci` (lint, types, fixtures,
+# CI for Spectral Canary Works. ENABLED: the owner turned GitHub Actions on on 2026-11-09, and the repo is public
+# (standard GitHub-hosted runners are free for public repos). It runs on pull requests and manual dispatch, not on
+# every push. Every job here also runs locally: `make ci` (lint, types, fixtures,
 # contract, tests incl. e2e failure->rollback, chaos replay, web build), `make iac-validate`, `make docker-build`.
 # No secrets are required by any job.
 name: ci
@@ -104,36 +104,51 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./scripts/iac_validate.sh
 
-  llm-gate:
-    # Prompt/model regression gate for the LLM triage lane. Runs only when prompts, bundles, the policy, the gold set
-    # or the lane's code change. NOT RUN ON GITHUB (Actions disabled); executed locally with `make llm-gate`, output
-    # saved under docs/evidence/llm/. On a GitHub-hosted runner the 3B model runs on CPU (expect ~10-20 min).
-    name: LLM triage regression gate (promptfoo, local Ollama, pass-rate threshold)
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+  changes:
+    # Decides whether the LLM gate below needs to run, so its Ollama service container only starts when it is used.
+    name: detect LLM-lane changes
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    services:
-      ollama:
-        image: ollama/ollama:latest   # pin to a digest before enabling Actions
-        ports: ["11434:11434"]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read   # paths-filter lists the PR's changed files through the API
+    outputs:
+      llm: ${{ steps.filter.outputs.llm }}
     steps:
-      - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
-        id: changed
+        id: filter
         with:
           filters: |
             llm:
               - 'configs/llm/**'
               - 'evals/triage/**'
               - 'src/spectral_canary/llm/**'
-      - if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
-        uses: actions/setup-node@v4
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+
+  llm-gate:
+    # Prompt/model regression gate for the LLM triage lane: promptfoo against a local Ollama service, failing below the
+    # pass-rate threshold in the Makefile. Runs on pull requests that change the lane's prompts, bundles, policy, gold
+    # set, code, the Makefile or this workflow, and on manual dispatch. On a GitHub-hosted runner the 3B model runs on
+    # CPU. The image is pinned by digest to Ollama 0.40.13, the version on the build machine; recorded local gate
+    # output is under docs/evidence/llm/promptfoo/.
+    name: LLM triage regression gate (promptfoo, local Ollama, pass-rate threshold)
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.llm == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      ollama:
+        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
+        ports: ["11434:11434"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with: {node-version: "22.22", cache: npm, cache-dependency-path: evals/triage/package-lock.json}
       - name: pull the pinned model tag
-        if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
         run: curl -fsS http://127.0.0.1:11434/api/pull -d '{"model":"llama3.2:3b","stream":false}'
       - name: promptfoo eval (fails below the pass-rate threshold)
-        if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
         run: make llm-gate
       - uses: actions/upload-artifact@v4
         if: always()
