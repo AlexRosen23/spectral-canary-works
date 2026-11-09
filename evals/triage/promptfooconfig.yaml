@@ -4,7 +4,11 @@
 #   a case FAILS if the output breaks the contract, or if a must-escalate alert is not escalated.
 # So the pass rate is 1 - (invalid + missed escalations) / 150: an escalation-recall gate in pass-rate form.
 # False escalations and reason-code accuracy are reported as named metrics and never fail a case.
-# The threshold (PROMPTFOO_PASS_RATE_THRESHOLD, percent) is derived in the Makefile from the recorded champion.
+# Two ways to gate on it (both in the Makefile):
+#   make llm-gate           absolute PROMPTFOO_PASS_RATE_THRESHOLD (90%, derived from the recorded champion on Apple
+#                           Metal; it doesn't transfer to other compute backends: the same champion scores 84.7% on CPU)
+#   make llm-gate-relative  this suite for a base checkout and for the head on one machine; fails when the head is more
+#                           than 2.2 points below the base (scripts/llm_gate_compare.py). The CI pull-request gate.
 # pass^3 consistency lives in the Python gate (scw llm-demo / scw llm-eval); this suite runs one greedy try per case.
 description: "Spectral Canary Works - fraud-alert triage regression suite (gold test split, code graders)"
 
