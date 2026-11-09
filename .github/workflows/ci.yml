@@ -87,7 +87,7 @@ jobs:
       - name: "smoke: readiness, a real prediction, version header, metrics"
         run: |
           docker run -d --name scw -p 5120:5120 --read-only --tmpfs /tmp spectral-canary-works:ci
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5120/readyz && break; sleep 2; done
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:5120/readyz && break; sleep 2; done
           curl -fsS -D /tmp/h -X POST http://127.0.0.1:5120/v1/predict -H 'content-type: application/json' \
             -d '{"request_key":"ci-1","features":{"amount":42.5,"merchant_category":"grocery","hour_of_day":12,"account_age_days":900,"txn_count_24h":2,"distance_from_home_km":3.2,"device_trust_score":0.9,"card_present":true,"country_mismatch":false}}'
           grep -i '^x-model-version: v1-logreg' /tmp/h

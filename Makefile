@@ -15,7 +15,7 @@ LLM_GATE_THRESHOLD ?= 90
 
 .PHONY: start setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
         loadtest web-build up down clean-state iac-validate contract-check docker-build \
-        llm-gold llm-eval llm-demo llm-gate
+        llm-gold llm-eval llm-demo llm-gate workflow-lint
 
 setup:            ## install Python + web deps, create local secrets (gitignored)
 	$(UV) sync --frozen
@@ -89,6 +89,9 @@ llm-gate:         ## promptfoo regression suite (pinned 0.125.1) vs local Ollama
 ci: lint typecheck train-fixtures contract-check llm-gold test chaos-replay  ## what .github/workflows/ci.yml runs
 	@if [ -d web/node_modules ]; then cd web && npm run typecheck && npm run build; fi
 	@echo "make ci: all checks passed"
+
+workflow-lint:    ## parse + lint .github/workflows with actionlint (Docker); catches YAML errors GitHub would reject
+	docker run --rm -v "$$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
 
 docker-build:
 	docker build -t spectral-canary-works:local .
