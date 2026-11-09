@@ -1,0 +1,1486 @@
+{
+  "llm-rel-0001": {
+    "blocking_reasons": [],
+    "candidate": "triage-p2",
+    "candidate_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3234,
+          0.4121
+        ],
+        "n": 450,
+        "rate": 0.3667
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2938,
+          0.4462
+        ],
+        "n": 150,
+        "rate": 0.3667
+      },
+      "cost_usd_per_1k_calls": 0.0593,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5743,
+          0.6637
+        ],
+        "n": 450,
+        "rate": 0.62
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5402,
+          0.6938
+        ],
+        "n": 150,
+        "rate": 0.62
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.7752,
+          0.8788
+        ],
+        "n": 198,
+        "rate": 0.8333
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4859,
+          0.6079
+        ],
+        "n": 252,
+        "rate": 0.5476
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 2328.341,
+        "n": 450,
+        "p50": 2337.09,
+        "p95": 2796.979,
+        "p99": 3072.311
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-325985cf9101-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.5138,
+          0.6052
+        ],
+        "n": 450,
+        "rate": 0.56
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.7715,
+            0.9088
+          ],
+          "n": 102,
+          "rate": 0.8529
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.6959,
+            0.8749
+          ],
+          "n": 75,
+          "rate": 0.8
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 405.8,
+        "output_mean": 46.8
+      }
+    },
+    "champion": "triage-p1",
+    "champion_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3213,
+          0.4099
+        ],
+        "n": 450,
+        "rate": 0.3644
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2445,
+          0.3914
+        ],
+        "n": 150,
+        "rate": 0.3133
+      },
+      "cost_usd_per_1k_calls": 0.06013,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5698,
+          0.6593
+        ],
+        "n": 450,
+        "rate": 0.6156
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.4406,
+          0.5985
+        ],
+        "n": 150,
+        "rate": 0.52
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.688,
+          0.8074
+        ],
+        "n": 198,
+        "rate": 0.7525
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4309,
+          0.5534
+        ],
+        "n": 252,
+        "rate": 0.4921
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 2192.979,
+        "n": 450,
+        "p50": 2185.67,
+        "p95": 2789.98,
+        "p99": 3078.124
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p1-a0b53471e700-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.4982,
+          0.5899
+        ],
+        "n": 450,
+        "rate": 0.5444
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.695,
+            0.853
+          ],
+          "n": 102,
+          "rate": 0.7843
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.7199,
+            0.9183
+          ],
+          "n": 51,
+          "rate": 0.8431
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.5679,
+            0.7746
+          ],
+          "n": 75,
+          "rate": 0.68
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 404.8,
+        "output_mean": 49.1
+      }
+    },
+    "checks": [
+      {
+        "blocking": true,
+        "limit": "registered sha256 + HMAC",
+        "name": "bundle_integrity",
+        "observed": "325985cf91018ca4",
+        "passed": true,
+        "reason": "bundle bytes and signature verified"
+      },
+      {
+        "blocking": true,
+        "limit": "a80c4f17acd55265",
+        "name": "model_weights_pinned",
+        "observed": "a80c4f17acd55265",
+        "passed": true,
+        "reason": "the weights behind the model tag must be the ones registered with the bundle"
+      },
+      {
+        "blocking": true,
+        "limit": 0.98,
+        "name": "schema_validity",
+        "observed": 1.0,
+        "passed": true,
+        "reason": "share of all tries that parse as the output contract (JSON, enum, boolean, rationale)"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7025,
+        "name": "escalation_recall_high_risk",
+        "observed": 0.8333,
+        "passed": true,
+        "reason": "recall on all should-escalate cases vs champion 0.7525 - 0.05"
+      },
+      {
+        "blocking": true,
+        "limit": 0.58,
+        "name": "segment_recall:high_value_cnp",
+        "observed": 0.8,
+        "passed": true,
+        "reason": "escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.68"
+      },
+      {
+        "blocking": true,
+        "limit": 0.6843,
+        "name": "segment_recall:account_takeover",
+        "observed": 0.8529,
+        "passed": true,
+        "reason": "escalation recall in segment account_takeover (34 cases x k) vs champion 0.7843"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7431,
+        "name": "segment_recall:card_testing_burst",
+        "observed": 0.9412,
+        "passed": true,
+        "reason": "escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.8431"
+      },
+      {
+        "blocking": true,
+        "limit": 0.5921,
+        "name": "false_escalation_rate",
+        "observed": 0.5476,
+        "passed": true,
+        "reason": "escalations of cases that should not escalate vs champion 0.4921"
+      },
+      {
+        "blocking": true,
+        "limit": 0.4944,
+        "name": "reason_accuracy",
+        "observed": 0.56,
+        "passed": true,
+        "reason": "pass@1 reason code accuracy vs champion 0.5444"
+      },
+      {
+        "blocking": true,
+        "limit": 0.2633,
+        "name": "pass^3",
+        "observed": 0.3667,
+        "passed": true,
+        "reason": "share of cases fully correct on all 3 tries vs champion 0.3133"
+      },
+      {
+        "blocking": false,
+        "limit": 1.25,
+        "name": "cost_per_call_vs_champion",
+        "observed": 0.986,
+        "passed": true,
+        "reason": "notional token cost ratio; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": 1.5,
+        "name": "latency_p95_vs_champion",
+        "observed": 1.003,
+        "passed": true,
+        "reason": "sequential offline p95 on a shared machine; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": ">=8/12 (champion)",
+        "name": "smoke_subset",
+        "observed": "8/12",
+        "passed": true,
+        "reason": "informational: the 12-case textbook smoke check a quick review would run (escalate decision, try 0)"
+      }
+    ],
+    "gold_sha256": "7dda8bd30eacc6e41f4101092864ae7ab2a0ff256bf3b150399b81a2d19000e6",
+    "lane": "llm",
+    "passed": true
+  },
+  "llm-rel-0002": {
+    "blocking_reasons": [
+      "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4091, limit 0.7833)",
+      "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.48, limit 0.7)",
+      "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.3824, limit 0.7529)",
+      "segment_recall:card_testing_burst: escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412 (observed 0.4118, limit 0.8412)",
+      "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.42, limit 0.51)"
+    ],
+    "candidate": "triage-p3",
+    "candidate_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.2978,
+          0.385
+        ],
+        "n": 450,
+        "rate": 0.34
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.269,
+          0.419
+        ],
+        "n": 150,
+        "rate": 0.34
+      },
+      "cost_usd_per_1k_calls": 0.05888,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5676,
+          0.6572
+        ],
+        "n": 450,
+        "rate": 0.6133
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5335,
+          0.6875
+        ],
+        "n": 150,
+        "rate": 0.6133
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.343,
+          0.4787
+        ],
+        "n": 198,
+        "rate": 0.4091
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.1789,
+          0.2817
+        ],
+        "n": 252,
+        "rate": 0.2262
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 1771.047,
+        "n": 450,
+        "p50": 1904.35,
+        "p95": 2485.56,
+        "p99": 2665.94
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p3-ff85c468f338-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.3753,
+          0.4661
+        ],
+        "n": 450,
+        "rate": 0.42
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.2939,
+            0.4793
+          ],
+          "n": 102,
+          "rate": 0.3824
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.2875,
+            0.5483
+          ],
+          "n": 51,
+          "rate": 0.4118
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.3707,
+            0.5913
+          ],
+          "n": 75,
+          "rate": 0.48
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 6,
+        "reason_correct_cases": 5,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 396.8,
+        "output_mean": 48.0
+      }
+    },
+    "champion": "triage-p2",
+    "champion_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3234,
+          0.4121
+        ],
+        "n": 450,
+        "rate": 0.3667
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2938,
+          0.4462
+        ],
+        "n": 150,
+        "rate": 0.3667
+      },
+      "cost_usd_per_1k_calls": 0.0593,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5743,
+          0.6637
+        ],
+        "n": 450,
+        "rate": 0.62
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5402,
+          0.6938
+        ],
+        "n": 150,
+        "rate": 0.62
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.7752,
+          0.8788
+        ],
+        "n": 198,
+        "rate": 0.8333
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4859,
+          0.6079
+        ],
+        "n": 252,
+        "rate": 0.5476
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 2328.341,
+        "n": 450,
+        "p50": 2337.09,
+        "p95": 2796.979,
+        "p99": 3072.311
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-325985cf9101-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.5138,
+          0.6052
+        ],
+        "n": 450,
+        "rate": 0.56
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.7715,
+            0.9088
+          ],
+          "n": 102,
+          "rate": 0.8529
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.6959,
+            0.8749
+          ],
+          "n": 75,
+          "rate": 0.8
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 405.8,
+        "output_mean": 46.8
+      }
+    },
+    "checks": [
+      {
+        "blocking": true,
+        "limit": "registered sha256 + HMAC",
+        "name": "bundle_integrity",
+        "observed": "ff85c468f338de5b",
+        "passed": true,
+        "reason": "bundle bytes and signature verified"
+      },
+      {
+        "blocking": true,
+        "limit": "a80c4f17acd55265",
+        "name": "model_weights_pinned",
+        "observed": "a80c4f17acd55265",
+        "passed": true,
+        "reason": "the weights behind the model tag must be the ones registered with the bundle"
+      },
+      {
+        "blocking": true,
+        "limit": 0.98,
+        "name": "schema_validity",
+        "observed": 1.0,
+        "passed": true,
+        "reason": "share of all tries that parse as the output contract (JSON, enum, boolean, rationale)"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7833,
+        "name": "escalation_recall_high_risk",
+        "observed": 0.4091,
+        "passed": false,
+        "reason": "recall on all should-escalate cases vs champion 0.8333 - 0.05"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7,
+        "name": "segment_recall:high_value_cnp",
+        "observed": 0.48,
+        "passed": false,
+        "reason": "escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7529,
+        "name": "segment_recall:account_takeover",
+        "observed": 0.3824,
+        "passed": false,
+        "reason": "escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529"
+      },
+      {
+        "blocking": true,
+        "limit": 0.8412,
+        "name": "segment_recall:card_testing_burst",
+        "observed": 0.4118,
+        "passed": false,
+        "reason": "escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412"
+      },
+      {
+        "blocking": true,
+        "limit": 0.6476,
+        "name": "false_escalation_rate",
+        "observed": 0.2262,
+        "passed": true,
+        "reason": "escalations of cases that should not escalate vs champion 0.5476"
+      },
+      {
+        "blocking": true,
+        "limit": 0.51,
+        "name": "reason_accuracy",
+        "observed": 0.42,
+        "passed": false,
+        "reason": "pass@1 reason code accuracy vs champion 0.56"
+      },
+      {
+        "blocking": true,
+        "limit": 0.3167,
+        "name": "pass^3",
+        "observed": 0.34,
+        "passed": true,
+        "reason": "share of cases fully correct on all 3 tries vs champion 0.3667"
+      },
+      {
+        "blocking": false,
+        "limit": 1.25,
+        "name": "cost_per_call_vs_champion",
+        "observed": 0.993,
+        "passed": true,
+        "reason": "notional token cost ratio; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": 1.5,
+        "name": "latency_p95_vs_champion",
+        "observed": 0.889,
+        "passed": true,
+        "reason": "sequential offline p95 on a shared machine; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": ">=8/12 (champion)",
+        "name": "smoke_subset",
+        "observed": "6/12",
+        "passed": false,
+        "reason": "informational: the 12-case textbook smoke check a quick review would run (escalate decision, try 0)"
+      }
+    ],
+    "gold_sha256": "7dda8bd30eacc6e41f4101092864ae7ab2a0ff256bf3b150399b81a2d19000e6",
+    "lane": "llm",
+    "passed": false
+  },
+  "llm-rel-0003": {
+    "blocking_reasons": [
+      "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4242, limit 0.7833)",
+      "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.24, limit 0.7)",
+      "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.2647, limit 0.7529)",
+      "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.3467, limit 0.51)",
+      "pass^3: share of cases fully correct on all 3 tries vs champion 0.3667 (observed 0.3133, limit 0.3167)"
+    ],
+    "candidate": "triage-p2-qwen",
+    "candidate_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.2722,
+          0.3576
+        ],
+        "n": 450,
+        "rate": 0.3133
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2445,
+          0.3914
+        ],
+        "n": 150,
+        "rate": 0.3133
+      },
+      "cost_usd_per_1k_calls": 0.05655,
+      "escalate_accuracy": {
+        "ci95": [
+          0.6492,
+          0.7342
+        ],
+        "n": 450,
+        "rate": 0.6933
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.6155,
+          0.7615
+        ],
+        "n": 150,
+        "rate": 0.6933
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.3575,
+          0.4939
+        ],
+        "n": 198,
+        "rate": 0.4242
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.0648,
+          0.1378
+        ],
+        "n": 252,
+        "rate": 0.0952
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 1643.815,
+        "n": 450,
+        "p50": 1632.16,
+        "p95": 2444.626,
+        "p99": 2812.046
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-qwen-d3ef8f91f165-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.3042,
+          0.3918
+        ],
+        "n": 450,
+        "rate": 0.3467
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.1888,
+            0.3577
+          ],
+          "n": 102,
+          "rate": 0.2647
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.1575,
+            0.3478
+          ],
+          "n": 75,
+          "rate": 0.24
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 5,
+        "reason_correct_cases": 2,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 410.9,
+        "output_mean": 38.7
+      }
+    },
+    "champion": "triage-p2",
+    "champion_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3234,
+          0.4121
+        ],
+        "n": 450,
+        "rate": 0.3667
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2938,
+          0.4462
+        ],
+        "n": 150,
+        "rate": 0.3667
+      },
+      "cost_usd_per_1k_calls": 0.0593,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5743,
+          0.6637
+        ],
+        "n": 450,
+        "rate": 0.62
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5402,
+          0.6938
+        ],
+        "n": 150,
+        "rate": 0.62
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.7752,
+          0.8788
+        ],
+        "n": 198,
+        "rate": 0.8333
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4859,
+          0.6079
+        ],
+        "n": 252,
+        "rate": 0.5476
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 2328.341,
+        "n": 450,
+        "p50": 2337.09,
+        "p95": 2796.979,
+        "p99": 3072.311
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-325985cf9101-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.5138,
+          0.6052
+        ],
+        "n": 450,
+        "rate": 0.56
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.7715,
+            0.9088
+          ],
+          "n": 102,
+          "rate": 0.8529
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.6959,
+            0.8749
+          ],
+          "n": 75,
+          "rate": 0.8
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 405.8,
+        "output_mean": 46.8
+      }
+    },
+    "checks": [
+      {
+        "blocking": true,
+        "limit": "registered sha256 + HMAC",
+        "name": "bundle_integrity",
+        "observed": "d3ef8f91f1657ec3",
+        "passed": true,
+        "reason": "bundle bytes and signature verified"
+      },
+      {
+        "blocking": true,
+        "limit": "f72c60cabf6237b0",
+        "name": "model_weights_pinned",
+        "observed": "f72c60cabf6237b0",
+        "passed": true,
+        "reason": "the weights behind the model tag must be the ones registered with the bundle"
+      },
+      {
+        "blocking": true,
+        "limit": 0.98,
+        "name": "schema_validity",
+        "observed": 1.0,
+        "passed": true,
+        "reason": "share of all tries that parse as the output contract (JSON, enum, boolean, rationale)"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7833,
+        "name": "escalation_recall_high_risk",
+        "observed": 0.4242,
+        "passed": false,
+        "reason": "recall on all should-escalate cases vs champion 0.8333 - 0.05"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7,
+        "name": "segment_recall:high_value_cnp",
+        "observed": 0.24,
+        "passed": false,
+        "reason": "escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7529,
+        "name": "segment_recall:account_takeover",
+        "observed": 0.2647,
+        "passed": false,
+        "reason": "escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529"
+      },
+      {
+        "blocking": true,
+        "limit": 0.8412,
+        "name": "segment_recall:card_testing_burst",
+        "observed": 0.9412,
+        "passed": true,
+        "reason": "escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412"
+      },
+      {
+        "blocking": true,
+        "limit": 0.6476,
+        "name": "false_escalation_rate",
+        "observed": 0.0952,
+        "passed": true,
+        "reason": "escalations of cases that should not escalate vs champion 0.5476"
+      },
+      {
+        "blocking": true,
+        "limit": 0.51,
+        "name": "reason_accuracy",
+        "observed": 0.3467,
+        "passed": false,
+        "reason": "pass@1 reason code accuracy vs champion 0.56"
+      },
+      {
+        "blocking": true,
+        "limit": 0.3167,
+        "name": "pass^3",
+        "observed": 0.3133,
+        "passed": false,
+        "reason": "share of cases fully correct on all 3 tries vs champion 0.3667"
+      },
+      {
+        "blocking": false,
+        "limit": 1.25,
+        "name": "cost_per_call_vs_champion",
+        "observed": 0.954,
+        "passed": true,
+        "reason": "notional token cost ratio; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": 1.5,
+        "name": "latency_p95_vs_champion",
+        "observed": 0.874,
+        "passed": true,
+        "reason": "sequential offline p95 on a shared machine; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": ">=8/12 (champion)",
+        "name": "smoke_subset",
+        "observed": "5/12",
+        "passed": false,
+        "reason": "informational: the 12-case textbook smoke check a quick review would run (escalate decision, try 0)"
+      }
+    ],
+    "gold_sha256": "7dda8bd30eacc6e41f4101092864ae7ab2a0ff256bf3b150399b81a2d19000e6",
+    "lane": "llm",
+    "passed": false
+  },
+  "llm-rel-0004": {
+    "blocking_reasons": [],
+    "candidate": "triage-p2-ctx4k",
+    "candidate_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3234,
+          0.4121
+        ],
+        "n": 450,
+        "rate": 0.3667
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2938,
+          0.4462
+        ],
+        "n": 150,
+        "rate": 0.3667
+      },
+      "cost_usd_per_1k_calls": 0.0593,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5743,
+          0.6637
+        ],
+        "n": 450,
+        "rate": 0.62
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5402,
+          0.6938
+        ],
+        "n": 150,
+        "rate": 0.62
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.7752,
+          0.8788
+        ],
+        "n": 198,
+        "rate": 0.8333
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4859,
+          0.6079
+        ],
+        "n": 252,
+        "rate": 0.5476
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 1939.012,
+        "n": 450,
+        "p50": 1970.94,
+        "p95": 2584.98,
+        "p99": 2872.089
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-ctx4k-0dd4ce0747fc-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.5138,
+          0.6052
+        ],
+        "n": 450,
+        "rate": 0.56
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.7715,
+            0.9088
+          ],
+          "n": 102,
+          "rate": 0.8529
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.6959,
+            0.8749
+          ],
+          "n": 75,
+          "rate": 0.8
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 405.8,
+        "output_mean": 46.8
+      }
+    },
+    "champion": "triage-p2",
+    "champion_summary": {
+      "call_errors": 0,
+      "calls": 450,
+      "cases": 150,
+      "correct_pass1": {
+        "ci95": [
+          0.3234,
+          0.4121
+        ],
+        "n": 450,
+        "rate": 0.3667
+      },
+      "correct_pass_k": {
+        "ci95": [
+          0.2938,
+          0.4462
+        ],
+        "n": 150,
+        "rate": 0.3667
+      },
+      "cost_usd_per_1k_calls": 0.0593,
+      "escalate_accuracy": {
+        "ci95": [
+          0.5743,
+          0.6637
+        ],
+        "n": 450,
+        "rate": 0.62
+      },
+      "escalate_pass_k": {
+        "ci95": [
+          0.5402,
+          0.6938
+        ],
+        "n": 150,
+        "rate": 0.62
+      },
+      "escalation_recall": {
+        "ci95": [
+          0.7752,
+          0.8788
+        ],
+        "n": 198,
+        "rate": 0.8333
+      },
+      "false_escalation_rate": {
+        "ci95": [
+          0.4859,
+          0.6079
+        ],
+        "n": 252,
+        "rate": 0.5476
+      },
+      "k": 3,
+      "latency_ms": {
+        "mean": 2328.341,
+        "n": 450,
+        "p50": 2337.09,
+        "p95": 2796.979,
+        "p99": 3072.311
+      },
+      "one_sentence_rationale": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "raw_results": "triage-p2-325985cf9101-gold7dda8bd30eac-k3.jsonl",
+      "reason_accuracy": {
+        "ci95": [
+          0.5138,
+          0.6052
+        ],
+        "n": 450,
+        "rate": 0.56
+      },
+      "reused_previous_run": true,
+      "schema_valid": {
+        "ci95": [
+          0.9915,
+          1.0
+        ],
+        "n": 450,
+        "rate": 1.0
+      },
+      "segments": {
+        "account_takeover": {
+          "cases": 34,
+          "ci95": [
+            0.7715,
+            0.9088
+          ],
+          "n": 102,
+          "rate": 0.8529
+        },
+        "card_testing_burst": {
+          "cases": 17,
+          "ci95": [
+            0.8408,
+            0.9798
+          ],
+          "n": 51,
+          "rate": 0.9412
+        },
+        "high_value_cnp": {
+          "cases": 25,
+          "ci95": [
+            0.6959,
+            0.8749
+          ],
+          "n": 75,
+          "rate": 0.8
+        }
+      },
+      "smoke": {
+        "cases": 12,
+        "passed_cases": 8,
+        "reason_correct_cases": 7,
+        "rule": "try 0 of each smoke case: valid JSON and the escalate decision correct"
+      },
+      "tokens": {
+        "input_mean": 405.8,
+        "output_mean": 46.8
+      }
+    },
+    "checks": [
+      {
+        "blocking": true,
+        "limit": "registered sha256 + HMAC",
+        "name": "bundle_integrity",
+        "observed": "0dd4ce0747fc24d2",
+        "passed": true,
+        "reason": "bundle bytes and signature verified"
+      },
+      {
+        "blocking": true,
+        "limit": "a80c4f17acd55265",
+        "name": "model_weights_pinned",
+        "observed": "a80c4f17acd55265",
+        "passed": true,
+        "reason": "the weights behind the model tag must be the ones registered with the bundle"
+      },
+      {
+        "blocking": true,
+        "limit": 0.98,
+        "name": "schema_validity",
+        "observed": 1.0,
+        "passed": true,
+        "reason": "share of all tries that parse as the output contract (JSON, enum, boolean, rationale)"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7833,
+        "name": "escalation_recall_high_risk",
+        "observed": 0.8333,
+        "passed": true,
+        "reason": "recall on all should-escalate cases vs champion 0.8333 - 0.05"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7,
+        "name": "segment_recall:high_value_cnp",
+        "observed": 0.8,
+        "passed": true,
+        "reason": "escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8"
+      },
+      {
+        "blocking": true,
+        "limit": 0.7529,
+        "name": "segment_recall:account_takeover",
+        "observed": 0.8529,
+        "passed": true,
+        "reason": "escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529"
+      },
+      {
+        "blocking": true,
+        "limit": 0.8412,
+        "name": "segment_recall:card_testing_burst",
+        "observed": 0.9412,
+        "passed": true,
+        "reason": "escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412"
+      },
+      {
+        "blocking": true,
+        "limit": 0.6476,
+        "name": "false_escalation_rate",
+        "observed": 0.5476,
+        "passed": true,
+        "reason": "escalations of cases that should not escalate vs champion 0.5476"
+      },
+      {
+        "blocking": true,
+        "limit": 0.51,
+        "name": "reason_accuracy",
+        "observed": 0.56,
+        "passed": true,
+        "reason": "pass@1 reason code accuracy vs champion 0.56"
+      },
+      {
+        "blocking": true,
+        "limit": 0.3167,
+        "name": "pass^3",
+        "observed": 0.3667,
+        "passed": true,
+        "reason": "share of cases fully correct on all 3 tries vs champion 0.3667"
+      },
+      {
+        "blocking": false,
+        "limit": 1.25,
+        "name": "cost_per_call_vs_champion",
+        "observed": 1.0,
+        "passed": true,
+        "reason": "notional token cost ratio; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": 1.5,
+        "name": "latency_p95_vs_champion",
+        "observed": 0.924,
+        "passed": true,
+        "reason": "sequential offline p95 on a shared machine; binding check is the canary SLO"
+      },
+      {
+        "blocking": false,
+        "limit": ">=8/12 (champion)",
+        "name": "smoke_subset",
+        "observed": "8/12",
+        "passed": true,
+        "reason": "informational: the 12-case textbook smoke check a quick review would run (escalate decision, try 0)"
+      }
+    ],
+    "gold_sha256": "7dda8bd30eacc6e41f4101092864ae7ab2a0ff256bf3b150399b81a2d19000e6",
+    "lane": "llm",
+    "passed": true
+  }
+}

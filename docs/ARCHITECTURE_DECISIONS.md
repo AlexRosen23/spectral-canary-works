@@ -68,3 +68,26 @@ $9/month for 0.25 vCPU / 0.5 GB always on, plus the same IPv4 charge). Lambda is
 **Decision:** a static Vite build. No server rendering is needed, nginx serves it as non-root, and there are
 fewer moving parts. Charts are hand-written SVG to avoid chart-library weight and keep every mark tied to
 API data.
+
+## ADR-9: the LLM lane reuses this repo's registry and controller instead of MLflow (with an export path)
+
+**Context:** the LLM triage lane needs an immutable, hashed record of each releasable unit (prompt text + model +
+weights digest + sampling params), a release state machine, an audit trail and a rollback path. MLflow's GenAI
+stack covers much of the bookkeeping: a Prompt Registry with commit-style immutable versions, mutable aliases and
+lineage to traces and evaluations (https://mlflow.org/docs/latest/genai/prompt-registry/), tracing it describes as
+OpenTelemetry-compatible (https://mlflow.org/docs/latest/genai/tracing/), and `mlflow.genai.evaluate` with code and
+LLM-judge scorers (https://mlflow.org/docs/latest/genai/eval-monitor/). Retrieved 2026-11-09.
+**Decision:** keep the existing registry for this lab. A prompt bundle is registered through the same
+`model_versions` table, SHA-256 and HMAC signature as a model artifact (`llm/bundles.py`), and released by the same
+`Controller` (`llm/controller.py` only plugs LLM evidence into its hooks).
+**Why:** (1) the lab's point is the release *controller*: CAS pointer swaps, separation of duties, paired online
+guardrails, idempotent rollback, hash-chained events. MLflow aliases are mutable pointers without that state
+machine, so MLflow would add a second source of truth to keep consistent with the controller's pointer. (2) one
+SQLite file per run is portable evidence (ADR-3); an MLflow tracking server is another process to run and back up.
+(3) the bundle pins the Ollama weights digest and the output schema in generation order; the MLflow prompt version
+holds the template, and per its docs the model config stored with a version is mutable.
+**Consequences / export path:** the bundle JSON (`var/.../llm/bundles/<version>.json`) already carries everything a
+prompt-registry entry needs (name, template, version, model, params, hash). A thin exporter (`mlflow.genai.register_prompt`
+per bundle plus an alias for the champion) is straightforward but **not implemented**: it would add a heavy
+dependency for no behavior the gate uses. Revisit when a team already runs MLflow, or when traces and eval runs need
+to be browsed across many projects; the OTel GenAI metrics this lane exports are the bridge in the meantime.

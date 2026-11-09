@@ -1,0 +1,14 @@
+version = "triage-p2"
+prompt_version = "p2"
+prompt_file = "prompts/triage-p2.md"
+model = "llama3.2:3b"
+user_template = "Fraud alert:\n{summary}"
+owner = "fraud-ops-ml"
+change_summary = "Same policy text as p1 with a tighter rationale (25 words, decisive facts only) and greedy decoding (temperature 0) for consistency across retries."
+deliberately_regressed = false
+
+[params]
+temperature = 0.0
+top_p = 0.9
+num_predict = 200
+num_ctx = 2048

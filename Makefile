@@ -6,9 +6,16 @@ UV ?= uv
 RUN := $(UV) run --frozen
 API_PORT ?= 5120
 WEB_PORT ?= 5121
+LLM_DEMO_PORT ?= 5141
+# promptfoo pass-rate threshold (percent) for `make llm-gate`. A case fails on an invalid reply or a missed
+# must-escalate alert (66 of the 150 test cases). Recorded champion triage-p2: escalation recall 0.8333 on the gold
+# test split (docs/evidence/llm/). Allowed recall = 0.8333 - 0.05 (the gate margin) -> 100 * (1 - (1 - 0.7833) * 66/150)
+# = 90.5 -> 90.
+LLM_GATE_THRESHOLD ?= 90
 
 .PHONY: start setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
-        loadtest web-build up down clean-state iac-validate contract-check docker-build
+        loadtest web-build up down clean-state iac-validate contract-check docker-build \
+        llm-gold llm-eval llm-demo llm-gate
 
 setup:            ## install Python + web deps, create local secrets (gitignored)
 	$(UV) sync --frozen
@@ -64,7 +71,22 @@ contract-check:   ## validate trained manifests against contracts/model_artifact
 iac-validate:     ## fmt + validate OpenTofu (local docker stack and the not-provisioned AWS path)
 	./scripts/iac_validate.sh
 
-ci: lint typecheck train-fixtures contract-check test chaos-replay  ## what .github/workflows/ci.yml runs
+llm-gold:         ## check the committed triage gold set against its seeded generator
+	$(RUN) scw llm-gold
+
+llm-eval:         ## offline regression suite (k=3, gold test split) for a bundle, real Ollama calls: make llm-eval B=triage-p2
+	$(RUN) scw llm-eval $(or $(B),triage-p2) --k 3
+
+llm-demo:         ## LLM triage lane story over real HTTP on :$(LLM_DEMO_PORT) with real local Ollama calls (long: ~2 h here)
+	$(RUN) scw llm-demo --port $(LLM_DEMO_PORT)
+
+llm-gate:         ## promptfoo regression suite (pinned 0.125.1) vs local Ollama, fails under LLM_GATE_THRESHOLD % pass rate
+	cd evals/triage && npm ci --no-audit --no-fund --silent && mkdir -p results && \
+	PROMPTFOO_PASS_RATE_THRESHOLD=$(LLM_GATE_THRESHOLD) PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 \
+	npx promptfoo eval -c promptfooconfig.yaml --no-cache --no-progress-bar \
+	  -o results/promptfoo-results.json -o results/promptfoo-results.junit.xml
+
+ci: lint typecheck train-fixtures contract-check llm-gold test chaos-replay  ## what .github/workflows/ci.yml runs
 	@if [ -d web/node_modules ]; then cd web && npm run typecheck && npm run build; fi
 	@echo "make ci: all checks passed"
 

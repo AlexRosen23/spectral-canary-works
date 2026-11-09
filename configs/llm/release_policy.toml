@@ -1,0 +1,58 @@
+# Release policy for the LLM triage lane (prompt bundle = prompt + model + params). Every number the LLM
+# controller uses to block, roll back or promote lives here. Its SHA-256 is recorded on every gate event.
+# Thresholds were fixed before the recorded run (after an unrecorded pilot on the dev split showed multi-second
+# p95 latency for a 3B model on this shared laptop, hence an absolute budget of 2 s AND a ratio vs the champion).
+
+[offline_gate]
+k = 3                               # tries per gold case; pass^3 = all three tries fully correct
+concurrency = 1                     # sequential calls: keeps latency comparable on a shared machine
+min_schema_valid = 0.98             # replies that parse as the output contract
+min_escalation_recall = 0.70        # bootstrap sanity floor only (no champion yet)
+min_reason_accuracy = 0.40          # bootstrap sanity floor only
+max_escalation_recall_drop = 0.05   # non-inferiority vs champion, all must-escalate cases
+max_segment_recall_drop = 0.10      # per escalation segment with >= min_segment_cases cases
+min_segment_cases = 15
+max_false_escalation_increase = 0.10
+max_reason_accuracy_drop = 0.05
+max_pass_k_drop = 0.05
+max_cost_ratio_vs_champion = 1.25
+max_latency_p95_ratio_vs_champion = 1.5
+cost_latency_blocking = false       # offline cost/latency is reported; the binding check is the canary SLO
+
+[shadow]
+min_requests = 60
+max_error_rate = 0.02               # candidate errors + timeouts + invalid outputs
+min_labeled_escalations = 10
+max_escalation_recall_drop = 0.10
+
+[canary]
+fraction = 0.10                     # share of customer ids routed to the candidate (sticky hash)
+window_requests = 200               # guardrails evaluated every 200 routed requests (logical clock)
+min_candidate_requests = 15
+max_error_rate = 0.02               # candidate failures incl. invalid outputs; the caller got the champion
+max_invalid_output_rate = 0.02
+latency_p95_budget_ms = 2000.0      # breach needs BOTH: p95 over budget AND over ratio x champion arm p95
+latency_p95_ratio_vs_champion = 1.5
+cost_ratio_vs_champion = 1.25       # mean notional cost per call vs champion arm, same window
+min_paired_escalations = 10         # labeled must-escalate alerts answered by the candidate (champion paired)
+mcnemar_alpha = 0.05
+healthy_windows_to_promote = 2
+on_breach = "rollback"
+require_human_approval = true
+stale_after_seconds = 900
+stuck_after_seconds = 1800
+drift_action = "rollback"           # major input drift = evidence no longer valid -> back to champion
+drift_min_rows = 150
+drift_psi_major = 0.25
+
+[serving]
+model_timeout_ms = 30000.0          # a slower candidate call is abandoned; the champion answers
+
+[rollback]
+verification_requests = 20          # real triage calls that must be answered by the champion after rollback
+
+[price]
+# Notional reference prices (assumption, USD per million tokens). Local Ollama has no per-token bill; the
+# prices only make cost comparable across bundles. Output priced 4x input, as is typical for hosted APIs.
+input_usd_per_mtok = 0.10
+output_usd_per_mtok = 0.40

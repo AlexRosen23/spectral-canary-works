@@ -48,6 +48,22 @@
 | `traffic.py`, `scenarios.py`, `chaos.py`, `drivers.py` | seeded simulated traffic with delayed labels; the demo story and failure scenarios with expected outcomes |
 | `loadtest.py` | closed-loop HTTP load generator with raw per-request output |
 
+### LLM triage lane (`src/spectral_canary/llm/`, see `LLM_RELEASE_LANE.md`)
+
+| module | responsibility |
+|---|---|
+| `llm/alerts.py` | seeded alert generator, rule-derived labels (decision table), gold set + smoke subset, simulated alert traffic |
+| `llm/bundles.py` | prompt bundles (prompt + model + weights digest + params) compiled, hashed, signed, registered in `model_versions` |
+| `llm/client.py` | Ollama `/api/chat` backend with JSON-schema structured output; `ScriptedBackend` test double |
+| `llm/graders.py`, `llm/evals.py` | code graders; k-try regression suite with pass@1 / pass^k, segment recall, cost, latency |
+| `llm/gates.py` | offline gate for bundles (same report shape as `gates.py`) |
+| `llm/service.py` | triage gateway core: snapshot, sticky routing, shadow, canary with champion fallback and paired champion call, fail closed |
+| `llm/monitor.py` | LLM shadow summary, canary window (online grading, latency/cost SLOs, McNemar), input drift (PSI) |
+| `llm/controller.py` | `LLMController(Controller)`: only the evidence hooks; transitions, CAS, approval and rollback are inherited |
+| `llm/store.py` | `LLMStore(Store)`: same registry/events/pointer tables + `llm_requests`, `llm_feedback`, in a separate SQLite file |
+| `llm/otel.py` | OpenTelemetry GenAI client metrics into the gateway's Prometheus registry |
+| `llm/api.py`, `llm/scenarios.py`, `llm/commands.py` | `/v1/llm/*` routes; HTTP/in-process drivers and the recorded story; `scw llm-*` commands |
+
 ## Key invariants and where they are enforced
 
 - *Only verified bytes serve:* `ModelPool.get` → `artifacts.load_verified` (hash + allowlist) and an HMAC check.

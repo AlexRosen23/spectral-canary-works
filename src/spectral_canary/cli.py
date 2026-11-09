@@ -396,6 +396,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=["champion", "canary"], nargs="*", default=["champion", "canary"])
     p.add_argument("--base-url", default=None, help="test an already-running gateway instead (e.g. docker)")
     p.set_defaults(fn=cmd_loadtest)
+    from .llm.commands import add_parsers as add_llm_parsers
+
+    add_llm_parsers(sub)
     args = ap.parse_args(argv)
     os.environ.setdefault("OMP_NUM_THREADS", "1")
     return int(args.fn(args))

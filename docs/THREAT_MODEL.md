@@ -28,3 +28,14 @@ Non-goals: multi-tenant isolation, internet exposure, enterprise IAM.
 4. Training → registry (the manifest is signed at registration, not trusted from the trainer).
 
 Interop artifacts (e.g. from Morrowglass) enter at boundary 4 and get no special trust.
+
+## LLM triage lane (OWASP Top 10 for LLM Applications 2025)
+
+| risk | where it applies here | control in this repo | gap |
+|---|---|---|---|
+| LLM01 prompt injection | alert summaries are model input; in production they would carry attacker-influenced text (merchant descriptors, customer notes) | the model has no tools and no data access; its reply is constrained by a JSON schema and validated by code; an invalid reply is never served (fallback or fail closed) | no injection test set or red-team run (`promptfoo redteam` not run); a crafted summary could still flip `escalate` |
+| LLM05 improper output handling | the triage reply drives escalation | strict schema (exact keys, enum, boolean, length cap) checked in `llm/graders.py` before serving; rationale is display text only | — |
+| LLM06 excessive agency | — | the component only classifies; no tool calls, no writes | — |
+| LLM03 supply chain / LLM04 poisoning | model weights behind an Ollama tag can change | the bundle pins the weights digest at registration; gate and staging refuse a changed digest | digest pinning trusts the local Ollama store |
+| LLM10 unbounded consumption | long inputs / long outputs | summary capped at 2,000 chars, `num_predict` 200, 30 s call timeout, bulkheaded executors, token-cost SLO in canary | no per-client rate limit |
+| LLM09 misinformation | wrong escalation decisions | offline segment recall + pass^3, paired online grading in canary, human approval for promotion | the 3B champion gets 44% of reason codes wrong and over-escalates; decisions still need analyst review |

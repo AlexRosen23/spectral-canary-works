@@ -1,0 +1,14 @@
+{
+  "name": "scw-triage-evals",
+  "private": true,
+  "description": "promptfoo regression suite for the LLM triage lane (local Ollama). See docs/LLM_RELEASE_LANE.md.",
+  "scripts": {
+    "gate": "promptfoo eval -c promptfooconfig.yaml --no-cache --no-progress-bar -o results/promptfoo-results.json"
+  },
+  "devDependencies": {
+    "promptfoo": "0.125.1"
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  }
+}

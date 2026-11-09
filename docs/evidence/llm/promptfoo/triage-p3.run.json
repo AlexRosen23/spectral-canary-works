@@ -1,0 +1,1 @@
+{"prompt": "triage-p3", "command": "SCW_TRIAGE_PROMPT=triage-p3 make llm-gate", "threshold_percent": 90, "make_exit_code": 2, "started_utc": "2026-11-09T19:35:55Z", "ended_utc": "2026-11-09T19:38:44Z", "commit": "3b5f0dce30be091627f963b2a8b3f9e462c017fa", "worktree_clean_for_evals": "0", "promptfoo": "0.125.1", "node": "v24.14.0", "ollama": "0.40.13"}

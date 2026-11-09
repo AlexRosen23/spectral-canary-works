@@ -1,0 +1,55 @@
+# promptfoo regression suite for the LLM triage lane, run against the LOCAL Ollama server (no hosted API, no keys).
+# It mirrors the release gate's code graders for one bundle (default triage-p2, the promoted champion;
+# SCW_TRIAGE_PROMPT=triage-p3 tests the regressed prompt with the same model and params):
+#   a case FAILS if the output breaks the contract, or if a must-escalate alert is not escalated.
+# So the pass rate is 1 - (invalid + missed escalations) / 150: an escalation-recall gate in pass-rate form.
+# False escalations and reason-code accuracy are reported as named metrics and never fail a case.
+# The threshold (PROMPTFOO_PASS_RATE_THRESHOLD, percent) is derived in the Makefile from the recorded champion.
+# pass^3 consistency lives in the Python gate (scw llm-demo / scw llm-eval); this suite runs one greedy try per case.
+description: "Spectral Canary Works - fraud-alert triage regression suite (gold test split, code graders)"
+
+prompts:
+  - id: file://prompt.cjs
+    label: triage-p2
+
+providers:
+  # must match configs/llm/bundles/triage-p2.toml (checked by tests/test_llm_lane.py)
+  - id: ollama:chat:llama3.2:3b
+    label: triage-p2@llama3.2:3b
+    config:
+      temperature: 0
+      top_p: 0.9
+      num_predict: 200
+      num_ctx: 2048
+      seed: 42
+      format:
+        type: object
+        properties:
+          reason_code:
+            type: string
+            enum: [CARD_TESTING, ACCOUNT_TAKEOVER, STOLEN_CARD_CNP, FRIENDLY_FRAUD, BENIGN_ANOMALY]
+          escalate:
+            type: boolean
+          rationale:
+            type: string
+        required: [reason_code, escalate, rationale]
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: file://graders.cjs:schemaValid
+      metric: schema_valid
+    - type: javascript
+      value: file://graders.cjs:escalationCaught
+      metric: escalation_caught
+    - type: javascript
+      value: file://graders.cjs:noFalseEscalation
+      metric: no_false_escalation   # always passes; reported only
+    - type: javascript
+      value: file://graders.cjs:reasonCorrect
+      metric: reason_correct   # always passes; its score is the reason-code accuracy (reported, not gating)
+
+tests: file://tests.cjs
+
+evaluateOptions:
+  maxConcurrency: 1

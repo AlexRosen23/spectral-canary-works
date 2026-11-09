@@ -1,0 +1,34 @@
+# make ci summary (OMP_NUM_THREADS=1 make ci), 2026-11-09T19:43:41Z, worktree started at commit 6d89c4d (src/tests identical to HEAD except llm/api.py overview 'db' field; tests/test_llm_lane.py + tests/test_api.py re-run at 687b4e7: 27 passed)
+# machine: Apple M5 Pro, shared and heavily loaded (load avg ~30-45)
+uv run --frozen ruff check src tests
+All checks passed!
+uv run --frozen ruff format --check src tests
+52 files already formatted
+uv run --frozen mypy
+Success: no issues found in 45 source files
+uv run --frozen scw train-fixtures
+v1-logreg: already trained (config + dataset hashes match), skipping
+v2-hgb: already trained (config + dataset hashes match), skipping
+v3-hgb-fresh: already trained (config + dataset hashes match), skipping
+v4-hgb-segfilter: already trained (config + dataset hashes match), skipping
+uv run --frozen python scripts/check_contract.py
+5/5 manifests satisfy model_artifact_v1 and the gateway schema
+uv run --frozen scw llm-gold
+gold set: 210 cases; generator sha256 7dda8bd30eacc6e4; committed 7dda8bd30eacc6e4; match=True
+uv run --frozen pytest
+66 passed, 1 warning in 2010.66s (0:33:30)
+uv run --frozen scw chaos-replay
+[chaos] PASS  schema_break           all malformed payloads rejected with 422 before any model call; valid traffic unaffected
+[chaos] PASS  distribution_shift     baseline PSI stable, shifted PSI major; drift alone never moves traffic
+[chaos] PASS  degraded_predictions   labeled guardrail detects the degraded candidate under shift; automatic rollback to v2-hgb
+[chaos] PASS  latency_spike          candidate p95 above budget -> rollback; users kept getting answers
+[chaos] PASS  candidate_timeout      candidate timeouts degrade gracefully to the champion (HTTP 200), error budget -> rollback
+[chaos] PASS  partial_outage         candidate error budget breach -> rollback; champion errors fail closed with 503, never a fake score
+[chaos] PASS  corrupted_artifact     tampered artifact blocked at the gate (hash mismatch); truncated artifact refused at registration
+[chaos] PASS  repeat_rollback        second rollback is an idempotent no-op (pointer generation unchanged), and is audited
+[chaos] PASS  restart_recovery       restart within stuck window resumes canary with persisted counters; a stuck release is reverted to the champion on the next start
+[chaos] PASS  promotion_race         concurrent approve + rollback serialize: one pointer change per successful operation, no lost update, pointer and release state agree
+[chaos] 10/10 passed; report: /Users/alexrosen/Development/portfolio-worktrees/spectral-canary-works-ai-eng/var/runs/chaos-20261109-134020/report.json
+✓ built in 424ms
+make ci: all checks passed
+# web unit tests (npm test): 5 passed

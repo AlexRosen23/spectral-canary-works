@@ -1,0 +1,232 @@
+{
+  "lane": "llm",
+  "release": {
+    "release_id": "llm-rel-0004",
+    "candidate_version": "triage-p2-ctx4k",
+    "champion_version": "triage-p2",
+    "state": "rolled_back",
+    "reason": "latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)",
+    "created_by": "oncall-operator"
+  },
+  "trigger": "guardrail_breach",
+  "rollback_event": {
+    "seq": 28,
+    "ts": 1794252332.313946,
+    "run_id": "llm-demo-20261109-130256",
+    "kind": "rollback.executed",
+    "actor": "controller",
+    "simulated": false,
+    "release_id": "llm-rel-0004",
+    "payload": {
+      "candidate": "triage-p2-ctx4k",
+      "evidence_window": 1,
+      "from_state": "canary",
+      "generation": 7,
+      "reason": "latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)",
+      "serving_after": "triage-p2",
+      "trigger": "guardrail_breach"
+    },
+    "hash": "c2be08951fe6655b1301f5fc5c76ef7f4589348a50acd586cfc6aee59144a5d8",
+    "prev_hash": "b8c1a8c9a0a1cdbad45f23428596972241db9f95bcb288b03ec44a5de15dd7aa"
+  },
+  "breach_evaluation": {
+    "seq": 27,
+    "ts": 1794252332.3127291,
+    "run_id": "llm-demo-20261109-130256",
+    "kind": "guardrail.evaluated",
+    "actor": "controller",
+    "simulated": true,
+    "release_id": "llm-rel-0004",
+    "payload": {
+      "arms": {
+        "candidate": {
+          "calls": 20,
+          "cost_ratio_vs_champion": 1.002,
+          "cost_usd_per_1k_calls": 0.05982,
+          "error_rate": 0.0,
+          "escalation_rate": 0.5,
+          "failures": 0,
+          "input_tokens_mean": 407.0,
+          "invalid_outputs": 0,
+          "latency_ms": {
+            "mean": 2400.126,
+            "n": 20,
+            "p50": 2467.945,
+            "p95": 2829.506,
+            "p99": 2992.077
+          },
+          "ok": 20,
+          "output_tokens_mean": 47.8,
+          "requests": 20
+        },
+        "champion": {
+          "calls": 180,
+          "cost_usd_per_1k_calls": 0.0597,
+          "error_rate": 0.0,
+          "escalation_rate": 0.5667,
+          "failures": 0,
+          "input_tokens_mean": 407.1,
+          "invalid_outputs": 0,
+          "latency_ms": {
+            "mean": 1074.183,
+            "n": 180,
+            "p50": 1050.875,
+            "p95": 1342.31,
+            "p99": 1651.703
+          },
+          "ok": 180,
+          "output_tokens_mean": 47.5,
+          "requests": 180
+        }
+      },
+      "breaches": [
+        "latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)"
+      ],
+      "drift_features": {
+        "amount": 0.0288,
+        "card_not_present": 0.0037,
+        "chargebacks_bucket": 0.0006,
+        "declines_bucket": 0.008,
+        "merchant": 0.0658,
+        "micro_auths_bucket": 0.0023,
+        "new_device": 0.0128,
+        "new_ship_to": 0.0004,
+        "recent_password_reset": 0.0022
+      },
+      "drift_is_breach": false,
+      "drift_max_psi": 0.0658,
+      "drift_status": "stable",
+      "healthy_windows": 0,
+      "insufficient": [
+        "paired labeled escalations 6 < 10 (delayed labels): no quality claim made"
+      ],
+      "labeled": {
+        "paired": {
+          "candidate_accuracy": 0.375,
+          "candidate_correct": 6,
+          "candidate_escalated": 5,
+          "candidate_recall": 0.8333,
+          "champion_accuracy": 0.375,
+          "champion_correct": 6,
+          "champion_recall": 0.8333,
+          "champion_would_have_escalated": 5,
+          "discordant_candidate_only": 0,
+          "discordant_champion_only": 0,
+          "escalations": 6,
+          "labeled": 16,
+          "mcnemar_p_one_sided": 1.0
+        }
+      },
+      "promotion_eligible": false,
+      "verdict": "breach",
+      "window_index": 1,
+      "window_requests": 200
+    },
+    "hash": "b8c1a8c9a0a1cdbad45f23428596972241db9f95bcb288b03ec44a5de15dd7aa",
+    "prev_hash": "8c5f0e421b727f42410048e5ae11dab9ffc030286cc8991181d0955a34d7a258"
+  },
+  "verification": {
+    "expected": "triage-p2",
+    "health": {
+      "champion": "triage-p2",
+      "generation": 7,
+      "mode": "none",
+      "problems": [],
+      "ready": true
+    },
+    "latency_ms_p95": 1239.9,
+    "passed": true,
+    "requests": 20,
+    "served_by_expected": 20,
+    "versions": {
+      "triage-p2": 20
+    }
+  },
+  "impact": {
+    "requests_in_release": 270,
+    "requests_served_by_candidate": 20,
+    "candidate_fallbacks_to_champion": 0,
+    "tokens_spent_by_candidate_answers": 9096,
+    "labeled_must_escalate_served_by_candidate": 6,
+    "escalations_missed_by_candidate_that_champion_made": 0,
+    "simulated_traffic_share": 1.0
+  },
+  "timeline": [
+    {
+      "seq": 21,
+      "ts": 1794251707.5805151,
+      "kind": "release.created",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "{\"candidate\": \"triage-p2-ctx4k\", \"champion\": \"triage-p2\", \"state\": \"registered\"}"
+    },
+    {
+      "seq": 22,
+      "ts": 1794251707.6482959,
+      "kind": "release.gate_evaluated",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "offline gate PASSED"
+    },
+    {
+      "seq": 23,
+      "ts": 1794251710.567321,
+      "kind": "release.staged",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "{\"loaded\": \"triage-p2-ctx4k\", \"model_digest\": \"a80c4f17acd55265\", \"smoke_latency_ms\": 2845.3, \"smoke_reply_valid\": true}"
+    },
+    {
+      "seq": 24,
+      "ts": 1794251710.580201,
+      "kind": "release.shadow_started",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "{\"candidate\": \"triage-p2-ctx4k\", \"champion\": \"triage-p2\", \"generation\": 5}"
+    },
+    {
+      "seq": 25,
+      "ts": 1794252039.608145,
+      "kind": "release.shadow_evaluated",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "shadow: 70 requests, candidate failure rate 0.0, escalate agreement 1.0, passed=True"
+    },
+    {
+      "seq": 26,
+      "ts": 1794252039.608463,
+      "kind": "release.canary_started",
+      "actor": "oncall-operator",
+      "simulated": false,
+      "summary": "canary 10% to triage-p2-ctx4k"
+    },
+    {
+      "seq": 27,
+      "ts": 1794252332.3127291,
+      "kind": "guardrail.evaluated",
+      "actor": "controller",
+      "simulated": true,
+      "summary": "window 1: breach \u2014 latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)"
+    },
+    {
+      "seq": 28,
+      "ts": 1794252332.313946,
+      "kind": "rollback.executed",
+      "actor": "controller",
+      "simulated": false,
+      "summary": "rollback (guardrail_breach): traffic \u2192 triage-p2; latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)"
+    },
+    {
+      "seq": 29,
+      "ts": 1794252352.151521,
+      "kind": "rollback.verified",
+      "actor": "controller",
+      "simulated": false,
+      "summary": "20/20 verification predictions served by triage-p2"
+    }
+  ],
+  "event_hashes": {
+    "first": "90e59fa74d0cfb078dd71d20b6341bf116cfdb98f4cf181e4eb6fb522d1f9f13",
+    "last": "c993090a731b9b2689f19c9df553d25fb272d643d0456995586f01b610643f47"
+  }
+}

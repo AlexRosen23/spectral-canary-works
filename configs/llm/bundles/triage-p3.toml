@@ -1,0 +1,14 @@
+version = "triage-p3"
+prompt_version = "p3"
+prompt_file = "prompts/triage-p3.md"
+model = "llama3.2:3b"
+user_template = "Fraud alert:\n{summary}"
+owner = "fraud-ops-ml"
+change_summary = "DELIBERATELY REGRESSED: a policy cleanup that dropped one escalation rule ('reason_code is ACCOUNT_TAKEOVER'). Looks fine on high-value online takeovers, which the dollar rule still escalates."
+deliberately_regressed = true
+
+[params]
+temperature = 0.0
+top_p = 0.9
+num_predict = 200
+num_ctx = 2048

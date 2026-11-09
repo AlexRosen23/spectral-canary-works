@@ -83,8 +83,8 @@ class FaultRequest(BaseModel):
     note: str = Field("", max_length=200)
 
 
-def create_app(rt: Runtime | None = None, start_background: bool = True) -> FastAPI:
-    state: dict[str, Any] = {"rt": rt}
+def create_app(rt: Runtime | None = None, start_background: bool = True, llm_rt: Any = None) -> FastAPI:
+    state: dict[str, Any] = {"rt": rt, "llm": llm_rt}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -94,6 +94,15 @@ def create_app(rt: Runtime | None = None, start_background: bool = True) -> Fast
         actions = runtime.controller.recover()
         if actions:
             log.warning("startup recovery", extra={"fields": {"actions": actions}})
+        if state["llm"] is None:
+            from .llm.runtime import build_llm_runtime, default_llm_db
+
+            if default_llm_db(runtime.paths) is not None:
+                state["llm"] = build_llm_runtime(runtime.paths.home)
+        if state["llm"] is not None:
+            llm_actions = state["llm"].controller.recover()
+            if llm_actions:
+                log.warning("llm lane startup recovery", extra={"fields": {"actions": llm_actions}})
         stop = threading.Event()
         if start_background:
 
@@ -101,6 +110,8 @@ def create_app(rt: Runtime | None = None, start_background: bool = True) -> Fast
                 while not stop.wait(5.0):
                     try:
                         runtime.controller.tick()
+                        if state["llm"] is not None:
+                            state["llm"].controller.tick()
                     except Exception:  # pragma: no cover
                         log.exception("controller tick failed")
 
@@ -108,6 +119,8 @@ def create_app(rt: Runtime | None = None, start_background: bool = True) -> Fast
         yield
         stop.set()
         runtime.service.writer.flush()
+        if state["llm"] is not None:
+            state["llm"].service.writer.flush()
 
     app = FastAPI(
         title="Spectral Canary Works",
@@ -160,6 +173,11 @@ def create_app(rt: Runtime | None = None, start_background: bool = True) -> Fast
     @app.get("/metrics")
     def metrics() -> Response:
         return Response(tm.render_metrics(), media_type="text/plain; version=0.0.4")
+
+    # -- LLM triage lane (/v1/llm/*): same controller, audit chain, roles and rollback path --------------------
+    from .llm.api import llm_router
+
+    app.include_router(llm_router(lambda: state["llm"], operator, need))
 
     # -- inference ------------------------------------------------------------------------------------------
     @app.post(

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API, api, subscribeEvents } from "./api";
 import type { Check, DriftReport, EventRow, ModelDetail, ModelSummary, Overview, Release, RunSummary, SeriesPoint } from "./api";
 import { BarChart, IntervalPlot, LineChart } from "./charts";
+import LlmLane from "./LlmLane";
 import type { Marker } from "./charts";
 import { TRACK, clock, dateTime, describe, ms, num, pct, reachedSteps, short, stateTone, trackStates, verdictTone } from "./format";
 
@@ -77,6 +78,7 @@ export default function App() {
           <Badge tone={ov.health.ready ? "good" : "critical"} icon={ov.health.ready ? "●" : "▲"} label={ov.health.ready ? "gateway ready" : "not ready"} title={ov.health.problems.join("; ")} />
           <Badge tone={ov.event_chain.ok ? "good" : "critical"} icon={ov.event_chain.ok ? "⛓" : "✕"} label={ov.event_chain.ok ? `audit chain ok · ${ov.event_chain.checked} events` : `chain broken @${ov.event_chain.broken_at_seq}`} />
           <Badge tone={feed === "live" ? "info" : "neutral"} icon="↻" label={`feed ${feed}`} />
+          <a className="badge info" href="#llm-lane">LLM lane ↓</a>
         </div>
       </header>
 
@@ -105,6 +107,7 @@ export default function App() {
       )}
 
       <Registry models={d.models} champion={ov.deployment.champion_version} onOpen={setDrawer} />
+      <LlmLane />
       {drawer && <ReproDrawer version={drawer} onClose={() => setDrawer(null)} />}
       <footer className="foot">
         Every number on this page is read from the gateway's recorded requests, hash-chained events and training manifests ·

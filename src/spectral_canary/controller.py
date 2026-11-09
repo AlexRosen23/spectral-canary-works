@@ -46,10 +46,16 @@ class ReleaseError(RuntimeError):
 
 
 class Controller:
+    """The release state machine. Lane-specific evidence (offline gate, staging smoke, shadow summary, canary
+    window, verification requests, postmortem) sits behind small hook methods so the LLM lane
+    (``llm.controller.LLMController``) reuses every transition, CAS swap, approval rule and the rollback path."""
+
+    release_prefix = "rel"
+
     def __init__(
         self,
         store: Store,
-        service: InferenceService,
+        service: InferenceService | Any,
         paths: StatePaths,
         policy: ReleasePolicy,
         postmortem_dir: Path | None = None,
@@ -92,7 +98,7 @@ class Controller:
         dep = self.store.deployment()
         if dep.champion_version:
             raise ReleaseError(f"champion already deployed ({dep.champion_version})")
-        report = run_offline_gate(version, None, self.service.pool, self.paths, self.policy.offline_gate)
+        report = self._offline_gate(version, None)
         if not report["passed"]:
             raise ReleaseError(f"bootstrap gate failed: {report['blocking_reasons']}")
         self.store.swap_deployment(
@@ -106,6 +112,65 @@ class Controller:
         )
         self.service.snapshot()
 
+    # -- lane hooks (the ML lane's evidence; overridden by llm.controller.LLMController) ---------------------
+    def _offline_gate(self, candidate: str, champion: str | None) -> dict[str, Any]:
+        return run_offline_gate(candidate, champion, self.service.pool, self.paths, self.policy.offline_gate)
+
+    def _staging_smoke(self, version: str) -> dict[str, Any]:
+        """Load the candidate for real and score one golden case. Raises ArtifactError if it cannot load."""
+        from .gates import GOLDEN_HIGH
+        from .schema import encode_records
+
+        m = self.service.pool.get(version)
+        return {"smoke_score": round(float(m.score(encode_records([GOLDEN_HIGH]))[0]), 6)}
+
+    def _shadow_summary(self, rel: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
+        rows = [r for r in rows if r.get("shadow_version") == rel["candidate_version"] and r["arm"] == "champion"]
+        return shadow_summary(rows, self.policy.shadow)
+
+    def _evaluate_window(
+        self, rel: dict[str, Any], window: list[dict[str, Any]], cumulative: list[dict[str, Any]], idx: int
+    ) -> dict[str, Any]:
+        ev = evaluate_canary_window(window, cumulative, self.policy.canary, idx)
+        ev["drift"] = drift_report(window, self.paths.data / "train.csv")
+        return ev
+
+    @staticmethod
+    def _window_event_payload(ev: dict[str, Any]) -> dict[str, Any]:
+        keys = (
+            "window_index",
+            "verdict",
+            "breaches",
+            "insufficient",
+            "healthy_windows",
+            "promotion_eligible",
+            "window_requests",
+        )
+        return {k: ev[k] for k in keys} | {
+            "arms": ev["arms"],
+            "labeled": ev["labeled_cumulative"],
+            "drift_status": ev["drift"]["status"],
+            "drift_max_psi": ev["drift"].get("max_psi"),
+            "drift_features": {k: v["psi"] for k, v in ev["drift"].get("features", {}).items()},
+        }
+
+    def _verification_payloads(self, release_id: str, why: str, n: int) -> list[dict[str, Any]]:
+        X, _, _ = load_split_csv(self.paths.data / "val.csv")
+        return [
+            {
+                "request_id": f"verify-{release_id}-{why}-{i}",
+                "request_key": f"verify-{i}",
+                "features": decode_row(X[i]),
+                "context": {"simulated": False, "scenario": f"{why}_verification"},
+            }
+            for i in range(n)
+        ]
+
+    def _write_postmortem(self, release_id: str) -> Path:
+        from .postmortem import write_postmortem
+
+        return write_postmortem(self.store, release_id, self.postmortem_dir)
+
     # -- release lifecycle ----------------------------------------------------------------------------------
     def propose(self, candidate: str, actor: str) -> dict[str, Any]:
         with self._lock:
@@ -117,11 +182,9 @@ class Controller:
             dep = self.store.deployment()
             if dep.champion_version == candidate:
                 raise ReleaseError(f"{candidate} is already the champion")
-            release_id = f"rel-{len(self.store.list_releases()) + 1:04d}"
+            release_id = f"{self.release_prefix}-{len(self.store.list_releases()) + 1:04d}"
             self.store.create_release(release_id, candidate, dep.champion_version, "registered", actor)
-            report = run_offline_gate(
-                candidate, dep.champion_version, self.service.pool, self.paths, self.policy.offline_gate
-            )
+            report = self._offline_gate(candidate, dep.champion_version)
             state = "validated" if report["passed"] else "blocked"
             self.store.update_release(
                 release_id,
@@ -146,11 +209,7 @@ class Controller:
             rel = self._release(release_id)
             self._check(rel, "staging")
             try:
-                m = self.service.pool.get(rel["candidate_version"])
-                from .gates import GOLDEN_HIGH
-                from .schema import encode_records
-
-                smoke = float(m.score(encode_records([GOLDEN_HIGH]))[0])
+                smoke = self._staging_smoke(rel["candidate_version"])
             except ArtifactError as exc:
                 self.store.update_release(
                     release_id,
@@ -167,7 +226,7 @@ class Controller:
                 state="staging",
                 event_kind="release.staged",
                 actor=actor,
-                event_payload={"loaded": rel["candidate_version"], "smoke_score": round(smoke, 6)},
+                event_payload={"loaded": rel["candidate_version"], **smoke},
             )
             return self._release(release_id)
 
@@ -196,12 +255,7 @@ class Controller:
     def shadow_report(self, release_id: str) -> dict[str, Any]:
         rel = self._release(release_id)
         self.service.writer.flush()
-        rows = [
-            r
-            for r in self.store.requests_since(rel["window_start_seq"], release_id)
-            if r.get("shadow_version") == rel["candidate_version"] and r["arm"] == "champion"
-        ]
-        return shadow_summary(rows, self.policy.shadow)
+        return self._shadow_summary(rel, self.store.requests_since(rel["window_start_seq"], release_id))
 
     def to_canary(self, release_id: str, actor: str) -> dict[str, Any]:
         with self._lock:
@@ -270,8 +324,7 @@ class Controller:
             window = self.store.requests_since(last, release_id)
             cumulative = self.store.requests_since(rel["canary_start_seq"] or 0, release_id)
             idx = rel["windows_evaluated"] + 1
-            ev = evaluate_canary_window(window, cumulative, self.policy.canary, idx)
-            ev["drift"] = drift_report(window, self.paths.data / "train.csv")
+            ev = self._evaluate_window(rel, window, cumulative, idx)
             new_last = max([r["seq"] for r in window], default=last)
             self._pending[release_id] = 0
             healthy = (
@@ -295,28 +348,10 @@ class Controller:
                 event_kind="guardrail.evaluated",
                 actor=actor,
                 simulated=bool(ev.get("simulated_traffic_share")),
-                event_payload={
-                    k: ev[k]
-                    for k in (
-                        "window_index",
-                        "verdict",
-                        "breaches",
-                        "insufficient",
-                        "healthy_windows",
-                        "promotion_eligible",
-                        "window_requests",
-                    )
-                }
-                | {
-                    "arms": ev["arms"],
-                    "labeled": ev["labeled_cumulative"],
-                    "drift_status": ev["drift"]["status"],
-                    "drift_max_psi": ev["drift"].get("max_psi"),
-                    "drift_features": {k: v["psi"] for k, v in ev["drift"].get("features", {}).items()},
-                },
+                event_payload=self._window_event_payload(ev),
             )
             tm.GUARDRAIL_EVALS.labels(verdict=ev["verdict"]).inc()
-            if ev["drift"]["status"] == "major":
+            if ev.get("drift", {}).get("status") == "major" and not ev.get("drift_is_breach"):
                 self.store.append_event(
                     "drift.alert",
                     {
@@ -484,9 +519,7 @@ class Controller:
             tm.ROLLBACKS.labels(trigger=trigger).inc()
             self.service.snapshot()
             verification = self._verify_serving(release_id, target, "rollback")
-            from .postmortem import write_postmortem
-
-            path = write_postmortem(self.store, release_id, self.postmortem_dir)
+            path = self._write_postmortem(release_id)
             self.store.append_event(
                 "postmortem.written", {"path": str(path)}, actor="controller", release_id=release_id
             )
@@ -499,19 +532,11 @@ class Controller:
     def _verify_serving(self, release_id: str, expected_version: str | None, why: str) -> dict[str, Any]:
         """Send real predictions through the gateway and confirm the expected version answers them."""
         n = self.policy.rollback.verification_requests
-        X, _, _ = load_split_csv(self.paths.data / "val.csv")
         ok = 0
         versions: dict[str, int] = {}
         lat = []
-        for i in range(n):
-            out = self.service.predict(
-                {
-                    "request_id": f"verify-{release_id}-{why}-{i}",
-                    "request_key": f"verify-{i}",
-                    "features": decode_row(X[i]),
-                    "context": {"simulated": False, "scenario": f"{why}_verification"},
-                }
-            )
+        for payload in self._verification_payloads(release_id, why, n):
+            out = self.service.predict(payload)
             v = out.body.get("model_version", "none")
             versions[v] = versions.get(v, 0) + 1
             if out.http_status == 200 and v == expected_version:

@@ -16,6 +16,46 @@ It answers three questions from code and recorded artifacts:
 > rollbacks, chaos outcomes and load-test numbers are real executions measured on one shared Apple Silicon
 > laptop. **Nothing is deployed to any cloud.** The AWS path is implemented and validated, not provisioned.
 
+## For AI Engineer reviewers (60 seconds)
+
+This branch adds an **LLM release lane**: a fraud-alert triage prompt (local `llama3.2:3b` via Ollama, structured JSON
+output) goes through the *same* registry, controller, audit chain and rollback path as the ML models. The releasable
+unit is a hashed, signed **prompt bundle** (prompt + model + pinned weights digest + params).
+
+1. **Read the recorded run:** [`docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md`](docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md) (generated from the
+   run files; real Ollama calls over real HTTP, simulated alerts). Reproduce with `make llm-demo` (needs Ollama with
+   `llama3.2:3b` and `qwen2.5-coder:3b`), or `make test` for the same story against a scripted test double in seconds.
+2. **Look at:** [`llm/controller.py`](src/spectral_canary/llm/controller.py) (LLM evidence plugged into the ML
+   controller's hooks), [`llm/gates.py`](src/spectral_canary/llm/gates.py) (code graders, pass^3, per-segment
+   escalation recall), [`llm/monitor.py`](src/spectral_canary/llm/monitor.py) (online grading, p95 latency and
+   token-cost SLOs, input-drift trigger), [`evals/triage/promptfooconfig.yaml`](evals/triage/promptfooconfig.yaml)
+   (CI regression gate), [`llm/otel.py`](src/spectral_canary/llm/otel.py) (OpenTelemetry GenAI metrics).
+3. **Headline numbers** (150 gold cases x 3 seeded tries, code graders only; rule-derived labels, not human):
+
+| release | outcome | evidence (offline: 150 cases x 3 tries; online: 10% canary, 200-request windows) |
+|---|---|---|
+| `triage-p1` -> `triage-p2` (same policy, greedy decoding) | **promoted** | escalation recall 75.2% -> 83.3%, pass^3 31.3% -> 36.7%; shadow + 2 healthy canary windows; release-manager approval (self-approval refused, 403) |
+| `triage-p3` (one escalation rule dropped) | **blocked offline** | escalation recall 40.9% vs 83.3%, all three segment checks failed. Its pass^3 (34.0%) was inside the margin: an aggregate score alone would have shipped it |
+| `triage-p2-qwen` (model swap to qwen2.5-coder:3b) | **blocked offline** | 4.6% cheaper and 13% lower offline p95, but escalation recall 42.4% vs 83.3% |
+| `triage-p2-ctx4k` (`num_ctx` 2048 -> 4096 only) | **rolled back automatically** | identical answers offline; in canary the shared Ollama server reloaded the model on every switch: candidate p95 2,830 ms vs 1,342 ms for the champion arm (2.11x, SLO 1.5x); 20/20 verification calls answered by p2; postmortem generated |
+
+The promptfoo CI gate (`make llm-gate`, threshold 90%) passes the champion prompt at 92.7% and fails the regressed
+prompt at 74.0% (exit 100): [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/).
+
+Caveats: a 3B local model gets only 37% of whole replies right on this policy (reported, not hidden); labels are
+rule-derived, graders are code, alert traffic is simulated, latency is from a shared laptop. The first, fully live
+run (`llm-demo-20261109-111237`, 110 min) reached the same four decisions.
+
+Full write-up: [`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md) · what this does and does not evidence for AI
+Engineer roles: [`docs/AI_ENGINEER_READINESS.md`](docs/AI_ENGINEER_READINESS.md) · walkthrough video
+[`docs/media/walkthrough.webm`](docs/media/walkthrough.webm).
+
+![LLM lane in the control room: four bundle releases and their gate numbers](docs/media/llm-lane-releases.png)
+
+| automatic rollback of the config-only change, with its generated postmortem | the ML lane in the same control room |
+|---|---|
+| ![rollback](docs/media/llm-lane-rollback.png) | ![ML lane](docs/media/control-room-ml-lane.png) |
+
 ## Quickstart (native macOS, CPU)
 
 ```bash
@@ -29,7 +69,7 @@ make web              # control room  http://127.0.0.1:5121
 | command | what it does |
 |---|---|
 | `make start` | **one port for everything:** builds what is missing, then the gateway, its read-only contract and the built control room on http://127.0.0.1:5120 (what the Constellation's launcher runs) |
-| `make test` | 49 Python tests (plus 5 web unit tests via `npm test`): unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
+| `make test` | 66 Python tests (plus 5 web unit tests via `npm test`), incl. 16 for the LLM lane: unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
 | `make eval` | held-out metrics table for every version |
 | `make chaos-replay` | 10 seeded failure scenarios with expected outcomes |
 | `make loadtest` | real HTTP load test at fixed concurrency levels; raw per-request results saved |
@@ -37,6 +77,9 @@ make web              # control room  http://127.0.0.1:5121
 | `make ci` | lint + mypy + fixtures + contract + all tests + chaos + web build (the CI workflow, run locally) |
 | `make up` / `make down` | production-like Docker stack (gateway, UI, simulated traffic, Prometheus, Grafana) / full teardown |
 | `make iac-validate` | OpenTofu fmt + validate for `infra/local` and `infra/aws` (no plan, no apply) |
+| `make llm-demo` | LLM lane story over real HTTP on :5141 with real local Ollama calls (about 2 h on a busy laptop) |
+| `make llm-gate` | promptfoo regression suite (pinned 0.125.1) against local Ollama; fails under the pass-rate threshold |
+| `make llm-eval B=<bundle>` / `make llm-gold` | offline suite for one bundle (k=3) / check the committed gold set against its generator |
 
 Ports: API 5120, web 5121 (Docker stack: Prometheus 5122, Grafana 5123). The load test uses 5130.
 
@@ -69,6 +112,8 @@ about a quarter of the positives. That's exactly the gap canaries exist to cover
 
 ```
 src/spectral_canary/   gateway (FastAPI), registry, controller, guardrails, chaos, load test, CLI
+src/spectral_canary/llm/  LLM triage lane: bundles, graders, evals, gates, service, monitor, OTel GenAI metrics
+evals/triage/          gold set (generator-checked) + promptfoo regression suite
 web/                   React + TypeScript control room (SVG charts, SSE event feed, replay, repro drawer)
 configs/               model configs (immutable versions) + release_policy.toml (every threshold)
 manifests/             committed dataset + model manifests (hashes, metrics), not the artifacts
@@ -102,7 +147,8 @@ runs locally with `make ci`, `make docker-build` and `make iac-validate`.
 [Deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) · [Load test results](docs/LOAD_TEST_RESULTS.md) ·
 [Cloud costs](docs/CLOUD_COSTS.md) · [Incident postmortem](docs/INCIDENT_POSTMORTEM.md) ·
 [Recruiter demo](docs/RECRUITER_DEMO.md) · [Interview defense](docs/INTERVIEW_DEFENSE.md) ·
-[Public case study](docs/PUBLIC_CASE_STUDY.md) · [Contributing](CONTRIBUTING.md)
+[Public case study](docs/PUBLIC_CASE_STUDY.md) · [LLM release lane](docs/LLM_RELEASE_LANE.md) ·
+[AI Engineer readiness](docs/AI_ENGINEER_READINESS.md) · [Contributing](CONTRIBUTING.md)
 
 ## License
 

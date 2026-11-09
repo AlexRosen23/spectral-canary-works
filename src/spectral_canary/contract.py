@@ -41,6 +41,12 @@ def _headline(rep: dict[str, Any]) -> str:
         if v.get("requests"):
             parts.append(f"{v['served_by_expected']}/{v['requests']} verified")
         return " · ".join(parts)
+    if kind == "llm-demo":
+        a = rep.get("result", {}).get("actual", {})
+        return (
+            f"LLM triage lane · p2 {a.get('A')} · p3 {a.get('B')} · model swap {a.get('C')} · "
+            f"ctx4k {str(a.get('D')).replace('_', ' ')} · champion {a.get('champion_after')}"
+        )
     if kind == "chaos":
         sc = rep.get("scenarios", [])
         return f"{sum(1 for s in sc if s.get('passed'))} of {len(sc)} failure scenarios held"
@@ -68,7 +74,7 @@ def _load(runs_dir: Path) -> list[dict[str, Any]]:
         except (OSError, json.JSONDecodeError):
             continue
         run_id = str(rep.get("run_id") or p.parent.name)
-        if not _RUN_ID.match(run_id) or rep.get("kind") not in ("demo", "chaos", "loadtest"):
+        if not _RUN_ID.match(run_id) or rep.get("kind") not in ("demo", "chaos", "loadtest", "llm-demo"):
             continue
         if rep.get("kind") == "demo":
             rid = (rep.get("result", {}).get("release_ids") or {}).get("C")
@@ -132,16 +138,21 @@ def capabilities_answer() -> dict[str, Any]:
             "hash-chained append-only audit log and generated postmortems",
             "seeded chaos replay: 10 failure scenarios with expected outcomes",
             "Prometheus metrics, SSE event feed, control-room UI",
+            "LLM triage lane: immutable prompt bundles (prompt + model + params), code-graded regression suite with "
+            "pass^3, shadow, 10% canary with online grading and latency/token-cost SLOs, same rollback path",
+            "OpenTelemetry GenAI client metrics (semantic conventions, Development status) on /metrics",
         ],
         "not_implemented": [
             "saturation-aware guardrail (overload is still read as a candidate failure)",
             "multi-replica controller (guardrail windows live in one process)",
             "sequential testing / alpha spending across windows",
+            "LLM-as-judge graders (all LLM-lane graders are code; labels are rule-derived, not human)",
         ],
         "disabled_by_design": [
             "cloud deployment (the AWS path is implemented but not provisioned)",
             "chaos endpoints unless SCW_ENABLE_CHAOS=1",
             "real customer data (synthetic only)",
+            "hosted LLM APIs (the LLM lane calls a local Ollama server only)",
         ],
         "endpoints": ["/health", "/capabilities", "/runs", "/runs/{run_id}"],
     }
