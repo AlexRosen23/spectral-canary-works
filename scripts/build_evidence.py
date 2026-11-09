@@ -193,7 +193,7 @@ add(
     "5 PR jobs passed on a GitHub-hosted runner: python (lint, mypy, fixtures with hash checks, contract, pytest, "
     "chaos replay, demo), security (pip-audit, gitleaks, npm audit, Trivy fs), web, image (build, smoke test, "
     "Trivy image), iac. llm-gate: champion 127/150 (84.7%) on the CPU backend vs 90% threshold calibrated on "
-    "Metal; made manual-dispatch only",
+    "Metal; the CI gate is now relative (next claim)",
     None,
     "pull_request run of .github/workflows/ci.yml",
     "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563",
@@ -202,6 +202,20 @@ add(
     "verified",
     {"runner": "ubuntu-24.04 GitHub-hosted"},
     "Actions enabled 2026-11-09 (owner); repo public, standard runners free; python job ~21 min",
+)
+add(
+    "LLM relative promptfoo gate as a PR check on GitHub",
+    "PR base and PR head scored on one CPU runner: 127/150 (84.67%) each, margin 2.2 points "
+    "(0.05 escalation recall x 66/150), PASS; locally on Metal 139/150 each, and the regressed triage-p3 as head "
+    "111/150 (-18.67 points) -> FAIL",
+    None,
+    "make llm-gate-relative (CI job llm-gate on pull_request)",
+    "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881",
+    "0509e06206f0fcbee5731af4fec170cc33fe4e45",
+    "GitHub Actions run 42701455881 (PR #6); docs/evidence/llm/promptfoo/relative.github-cpu.*",
+    "verified",
+    {"runner": "ubuntu-24.04 GitHub-hosted, Ollama 0.40.13 CPU backend"},
+    "replaces the Metal-calibrated absolute threshold in CI; two suite runs take ~27 min",
 )
 add(
     "Local Docker stack (gateway, web, simulated traffic, Prometheus, Grafana) up/down",
