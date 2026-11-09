@@ -1,8 +1,10 @@
 # promptfoo regression suite for the LLM triage lane, run against the LOCAL Ollama server (no hosted API, no keys).
-# It mirrors the release gate's code graders for one bundle (default triage-p2, the promoted champion):
-#   pass = valid output contract AND correct escalate decision (the safety-critical field).
-# reason_code accuracy is reported as a named metric but does not fail a case (a 3B model gets ~half of them right).
-# The CI threshold (PROMPTFOO_PASS_RATE_THRESHOLD, a percentage) is set in the Makefile from the recorded run.
+# It mirrors the release gate's code graders for one bundle (default triage-p2, the promoted champion;
+# SCW_TRIAGE_PROMPT=triage-p3 tests the regressed prompt with the same model and params):
+#   a case FAILS if the output breaks the contract, or if a must-escalate alert is not escalated.
+# So the pass rate is 1 - (invalid + missed escalations) / 150: an escalation-recall gate in pass-rate form.
+# False escalations and reason-code accuracy are reported as named metrics and never fail a case.
+# The threshold (PROMPTFOO_PASS_RATE_THRESHOLD, percent) is derived in the Makefile from the recorded champion.
 # pass^3 consistency lives in the Python gate (scw llm-demo / scw llm-eval); this suite runs one greedy try per case.
 description: "Spectral Canary Works - fraud-alert triage regression suite (gold test split, code graders)"
 
@@ -38,8 +40,11 @@ defaultTest:
       value: file://graders.cjs:schemaValid
       metric: schema_valid
     - type: javascript
-      value: file://graders.cjs:escalateCorrect
-      metric: escalate_correct
+      value: file://graders.cjs:escalationCaught
+      metric: escalation_caught
+    - type: javascript
+      value: file://graders.cjs:noFalseEscalation
+      metric: no_false_escalation   # always passes; reported only
     - type: javascript
       value: file://graders.cjs:reasonCorrect
       metric: reason_correct   # always passes; its score is the reason-code accuracy (reported, not gating)

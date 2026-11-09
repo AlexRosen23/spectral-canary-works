@@ -68,10 +68,11 @@ def main() -> int:
             summaries.setdefault(g["champion"], g["champion_summary"])
     hdr = (
         "| bundle | model | schema valid | reason acc (pass@1) | fully correct pass@1 | pass^3 | escalation recall "
-        "| takeover segment recall | high-value CNP recall | false escalation | p95 ms | out tokens | $ / 1k calls |"
+        "| takeover segment recall | high-value CNP recall | false escalation | escalate acc (all cases) | p95 ms "
+        "| out tokens | $ / 1k calls |"
     )
     rows.append(hdr)
-    rows.append("|" + "---|" * 13)
+    rows.append("|" + "---|" * 14)
     for v, s in summaries.items():
         model = rep["models"].get(v, {}).get("model", "?")
         seg = s["segments"]
@@ -81,6 +82,7 @@ def main() -> int:
             f"{pct(s['escalation_recall']['rate'])} [{pct(s['escalation_recall']['ci95'][0])}–"
             f"{pct(s['escalation_recall']['ci95'][1])}] | {pct(seg['account_takeover']['rate'])} | "
             f"{pct(seg['high_value_cnp']['rate'])} | {pct(s['false_escalation_rate']['rate'])} | "
+            f"{pct(s['escalate_accuracy']['rate'])} | "
             f"{s['latency_ms']['p95']:.0f} | {s['tokens']['output_mean']} | {s['cost_usd_per_1k_calls']} |"
         )
     res = rep["result"]
@@ -108,6 +110,36 @@ def main() -> int:
                 f"{'yes' if c.get('blocking', True) else 'no (advisory)'} |"
             )
         gate_lines.append("")
+    online = [
+        "| release | candidate | shadow (requests, candidate failures, escalate agreement) | canary windows "
+        "(healthy) | last window | candidate p95 / champion-arm p95 ms | $ per 1k calls cand / champ | "
+        "paired must-escalate: cand / champ of n | final state |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    con = sqlite3.connect(run / "llm-registry.sqlite")
+    con.row_factory = sqlite3.Row
+    for r in con.execute("SELECT * FROM releases ORDER BY created_at"):
+        sh = json.loads(r["shadow_summary_json"] or "null")
+        ev = json.loads(r["last_evaluation_json"] or "null")
+        if not sh and not ev:
+            continue
+        shs = f"{sh['requests']}, {sh['candidate_failures']}, {pct(sh.get('escalate_agreement'))}" if sh else "—"
+        if ev:
+            c, h = ev["arms"]["candidate"], ev["arms"]["champion"]
+            pr = ev["labeled_cumulative"]["paired"]
+            last = f"#{ev['window_index']} {ev['verdict']}" + (
+                ": " + "; ".join(ev["breaches"]) if ev["breaches"] else ""
+            )
+            lat = f"{c['latency_ms']['p95']} / {h['latency_ms']['p95']}"
+            cost = f"{c['cost_usd_per_1k_calls']} / {h['cost_usd_per_1k_calls']}"
+            paired = f"{pr['candidate_escalated']} / {pr['champion_would_have_escalated']} of {pr['escalations']}"
+        else:
+            last = lat = cost = paired = "—"
+        online.append(
+            f"| {r['release_id']} | `{r['candidate_version']}` | {shs} | {r['windows_evaluated']} "
+            f"({r['healthy_windows']}) | {last} | {lat} | {cost} | {paired} | {r['state']} |"
+        )
+    con.close()
     m = rep["machine"]
     md = [
         f"# LLM lane recorded run `{rep['run_id']}`",
@@ -130,6 +162,12 @@ def main() -> int:
         "## Release story: expected vs actual",
         "",
         *story,
+        "",
+        "## Online evidence (shadow and 10% canary, real HTTP, simulated alerts)",
+        "",
+        *online,
+        "",
+        "Canary windows are 200 routed requests; latency is model-call p95 within the window; cost is notional.",
         "",
         "## Offline regression suite (gold test split: 150 cases x k=3 seeded tries, code graders)",
         "",

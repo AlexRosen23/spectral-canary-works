@@ -1,0 +1,694 @@
+{
+  "run_id": "llm-demo-20261109-130256",
+  "kind": "llm-demo",
+  "lane": "llm",
+  "driver": "http",
+  "started_at": 1794250976.431612,
+  "duration_s": 1407.9,
+  "passed": true,
+  "summary": "A=promoted B=blocked C=blocked D=rolled_back champion_after=triage-p2",
+  "result": {
+    "scenario": "llm_release_story",
+    "passed": true,
+    "expected": {
+      "A_gate": "validated",
+      "A": "promoted",
+      "self_approval_refused": true,
+      "B": "blocked",
+      "B_blocked_on_account_takeover_segment": true,
+      "C": "blocked",
+      "D_gate": "validated",
+      "D": "rolled_back",
+      "champion_after": "triage-p2",
+      "mode_after": "none",
+      "post_rollback_versions": [
+        "triage-p2"
+      ]
+    },
+    "actual": {
+      "A_gate": "validated",
+      "self_approval_refused": true,
+      "A": "promoted",
+      "B": "blocked",
+      "B_blocked_on_account_takeover_segment": true,
+      "C": "blocked",
+      "D_gate": "validated",
+      "D": "rolled_back",
+      "D_reason": "latency SLO: candidate model p95 2830 ms > budget 2000 ms and 2.11x the champion's 1342 ms in the same window (limit 1.5x)",
+      "champion_after": "triage-p2",
+      "mode_after": "none",
+      "post_rollback_versions": [
+        "triage-p2"
+      ]
+    },
+    "observations": {
+      "B_smoke_subset": {
+        "candidate": "6/12",
+        "limit": ">=8/12 (champion)",
+        "would_have_shipped": false
+      }
+    },
+    "release_ids": {
+      "A": "llm-rel-0001",
+      "B": "llm-rel-0002",
+      "C": "llm-rel-0003",
+      "D": "llm-rel-0004"
+    },
+    "steps": [
+      {
+        "t": 1794250988.569,
+        "step": "propose triage-p2",
+        "release_id": "llm-rel-0001",
+        "state": "validated",
+        "gate": {
+          "passed": true,
+          "blocking_reasons": [],
+          "checks": [
+            {
+              "name": "bundle_integrity",
+              "passed": true,
+              "observed": "325985cf91018ca4",
+              "limit": "registered sha256 + HMAC",
+              "blocking": true
+            },
+            {
+              "name": "model_weights_pinned",
+              "passed": true,
+              "observed": "a80c4f17acd55265",
+              "limit": "a80c4f17acd55265",
+              "blocking": true
+            },
+            {
+              "name": "schema_validity",
+              "passed": true,
+              "observed": 1.0,
+              "limit": 0.98,
+              "blocking": true
+            },
+            {
+              "name": "escalation_recall_high_risk",
+              "passed": true,
+              "observed": 0.8333,
+              "limit": 0.7025,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:high_value_cnp",
+              "passed": true,
+              "observed": 0.8,
+              "limit": 0.58,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:account_takeover",
+              "passed": true,
+              "observed": 0.8529,
+              "limit": 0.6843,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:card_testing_burst",
+              "passed": true,
+              "observed": 0.9412,
+              "limit": 0.7431,
+              "blocking": true
+            },
+            {
+              "name": "false_escalation_rate",
+              "passed": true,
+              "observed": 0.5476,
+              "limit": 0.5921,
+              "blocking": true
+            },
+            {
+              "name": "reason_accuracy",
+              "passed": true,
+              "observed": 0.56,
+              "limit": 0.4944,
+              "blocking": true
+            },
+            {
+              "name": "pass^3",
+              "passed": true,
+              "observed": 0.3667,
+              "limit": 0.2633,
+              "blocking": true
+            },
+            {
+              "name": "cost_per_call_vs_champion",
+              "passed": true,
+              "observed": 0.986,
+              "limit": 1.25,
+              "blocking": false
+            },
+            {
+              "name": "latency_p95_vs_champion",
+              "passed": true,
+              "observed": 1.003,
+              "limit": 1.5,
+              "blocking": false
+            },
+            {
+              "name": "smoke_subset",
+              "passed": true,
+              "observed": "8/12",
+              "limit": ">=8/12 (champion)",
+              "blocking": false
+            }
+          ]
+        }
+      },
+      {
+        "t": 1794251155.15,
+        "step": "A shadow traffic",
+        "release_id": "llm-rel-0001",
+        "traffic": {
+          "requests": 70,
+          "status": {
+            "200": 70
+          },
+          "versions": {
+            "triage-p1": 70
+          },
+          "arms": {
+            "champion": 70
+          },
+          "fallbacks": 0,
+          "labels_sent": 61
+        }
+      },
+      {
+        "t": 1794251684.988,
+        "step": "A canary traffic",
+        "release_id": "llm-rel-0001",
+        "state": "canary",
+        "traffic": {
+          "requests": 400,
+          "versions": {
+            "triage-p2": 54,
+            "triage-p1": 346
+          },
+          "status": {
+            "200": 400
+          },
+          "fallbacks": 0
+        },
+        "windows": 2,
+        "healthy": 2
+      },
+      {
+        "t": 1794251707.045,
+        "step": "approve triage-p2",
+        "release_id": "llm-rel-0001",
+        "state": "promoted"
+      },
+      {
+        "t": 1794251707.198,
+        "step": "propose triage-p3",
+        "release_id": "llm-rel-0002",
+        "state": "blocked",
+        "gate": {
+          "passed": false,
+          "blocking_reasons": [
+            "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4091, limit 0.7833)",
+            "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.48, limit 0.7)",
+            "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.3824, limit 0.7529)",
+            "segment_recall:card_testing_burst: escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412 (observed 0.4118, limit 0.8412)",
+            "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.42, limit 0.51)"
+          ],
+          "checks": [
+            {
+              "name": "bundle_integrity",
+              "passed": true,
+              "observed": "ff85c468f338de5b",
+              "limit": "registered sha256 + HMAC",
+              "blocking": true
+            },
+            {
+              "name": "model_weights_pinned",
+              "passed": true,
+              "observed": "a80c4f17acd55265",
+              "limit": "a80c4f17acd55265",
+              "blocking": true
+            },
+            {
+              "name": "schema_validity",
+              "passed": true,
+              "observed": 1.0,
+              "limit": 0.98,
+              "blocking": true
+            },
+            {
+              "name": "escalation_recall_high_risk",
+              "passed": false,
+              "observed": 0.4091,
+              "limit": 0.7833,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:high_value_cnp",
+              "passed": false,
+              "observed": 0.48,
+              "limit": 0.7,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:account_takeover",
+              "passed": false,
+              "observed": 0.3824,
+              "limit": 0.7529,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:card_testing_burst",
+              "passed": false,
+              "observed": 0.4118,
+              "limit": 0.8412,
+              "blocking": true
+            },
+            {
+              "name": "false_escalation_rate",
+              "passed": true,
+              "observed": 0.2262,
+              "limit": 0.6476,
+              "blocking": true
+            },
+            {
+              "name": "reason_accuracy",
+              "passed": false,
+              "observed": 0.42,
+              "limit": 0.51,
+              "blocking": true
+            },
+            {
+              "name": "pass^3",
+              "passed": true,
+              "observed": 0.34,
+              "limit": 0.3167,
+              "blocking": true
+            },
+            {
+              "name": "cost_per_call_vs_champion",
+              "passed": true,
+              "observed": 0.993,
+              "limit": 1.25,
+              "blocking": false
+            },
+            {
+              "name": "latency_p95_vs_champion",
+              "passed": true,
+              "observed": 0.889,
+              "limit": 1.5,
+              "blocking": false
+            },
+            {
+              "name": "smoke_subset",
+              "passed": false,
+              "observed": "6/12",
+              "limit": ">=8/12 (champion)",
+              "blocking": false
+            }
+          ]
+        },
+        "blocking_reasons": [
+          "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4091, limit 0.7833)",
+          "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.48, limit 0.7)",
+          "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.3824, limit 0.7529)",
+          "segment_recall:card_testing_burst: escalation recall in segment card_testing_burst (17 cases x k) vs champion 0.9412 (observed 0.4118, limit 0.8412)",
+          "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.42, limit 0.51)"
+        ],
+        "smoke": "6/12"
+      },
+      {
+        "t": 1794251707.544,
+        "step": "propose triage-p2-qwen",
+        "release_id": "llm-rel-0003",
+        "state": "blocked",
+        "gate": {
+          "passed": false,
+          "blocking_reasons": [
+            "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4242, limit 0.7833)",
+            "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.24, limit 0.7)",
+            "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.2647, limit 0.7529)",
+            "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.3467, limit 0.51)",
+            "pass^3: share of cases fully correct on all 3 tries vs champion 0.3667 (observed 0.3133, limit 0.3167)"
+          ],
+          "checks": [
+            {
+              "name": "bundle_integrity",
+              "passed": true,
+              "observed": "d3ef8f91f1657ec3",
+              "limit": "registered sha256 + HMAC",
+              "blocking": true
+            },
+            {
+              "name": "model_weights_pinned",
+              "passed": true,
+              "observed": "f72c60cabf6237b0",
+              "limit": "f72c60cabf6237b0",
+              "blocking": true
+            },
+            {
+              "name": "schema_validity",
+              "passed": true,
+              "observed": 1.0,
+              "limit": 0.98,
+              "blocking": true
+            },
+            {
+              "name": "escalation_recall_high_risk",
+              "passed": false,
+              "observed": 0.4242,
+              "limit": 0.7833,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:high_value_cnp",
+              "passed": false,
+              "observed": 0.24,
+              "limit": 0.7,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:account_takeover",
+              "passed": false,
+              "observed": 0.2647,
+              "limit": 0.7529,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:card_testing_burst",
+              "passed": true,
+              "observed": 0.9412,
+              "limit": 0.8412,
+              "blocking": true
+            },
+            {
+              "name": "false_escalation_rate",
+              "passed": true,
+              "observed": 0.0952,
+              "limit": 0.6476,
+              "blocking": true
+            },
+            {
+              "name": "reason_accuracy",
+              "passed": false,
+              "observed": 0.3467,
+              "limit": 0.51,
+              "blocking": true
+            },
+            {
+              "name": "pass^3",
+              "passed": false,
+              "observed": 0.3133,
+              "limit": 0.3167,
+              "blocking": true
+            },
+            {
+              "name": "cost_per_call_vs_champion",
+              "passed": true,
+              "observed": 0.954,
+              "limit": 1.25,
+              "blocking": false
+            },
+            {
+              "name": "latency_p95_vs_champion",
+              "passed": true,
+              "observed": 0.874,
+              "limit": 1.5,
+              "blocking": false
+            },
+            {
+              "name": "smoke_subset",
+              "passed": false,
+              "observed": "5/12",
+              "limit": ">=8/12 (champion)",
+              "blocking": false
+            }
+          ]
+        },
+        "blocking_reasons": [
+          "escalation_recall_high_risk: recall on all should-escalate cases vs champion 0.8333 - 0.05 (observed 0.4242, limit 0.7833)",
+          "segment_recall:high_value_cnp: escalation recall in segment high_value_cnp (25 cases x k) vs champion 0.8 (observed 0.24, limit 0.7)",
+          "segment_recall:account_takeover: escalation recall in segment account_takeover (34 cases x k) vs champion 0.8529 (observed 0.2647, limit 0.7529)",
+          "reason_accuracy: pass@1 reason code accuracy vs champion 0.56 (observed 0.3467, limit 0.51)",
+          "pass^3: share of cases fully correct on all 3 tries vs champion 0.3667 (observed 0.3133, limit 0.3167)"
+        ]
+      },
+      {
+        "t": 1794251707.661,
+        "step": "propose triage-p2-ctx4k",
+        "release_id": "llm-rel-0004",
+        "state": "validated",
+        "gate": {
+          "passed": true,
+          "blocking_reasons": [],
+          "checks": [
+            {
+              "name": "bundle_integrity",
+              "passed": true,
+              "observed": "0dd4ce0747fc24d2",
+              "limit": "registered sha256 + HMAC",
+              "blocking": true
+            },
+            {
+              "name": "model_weights_pinned",
+              "passed": true,
+              "observed": "a80c4f17acd55265",
+              "limit": "a80c4f17acd55265",
+              "blocking": true
+            },
+            {
+              "name": "schema_validity",
+              "passed": true,
+              "observed": 1.0,
+              "limit": 0.98,
+              "blocking": true
+            },
+            {
+              "name": "escalation_recall_high_risk",
+              "passed": true,
+              "observed": 0.8333,
+              "limit": 0.7833,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:high_value_cnp",
+              "passed": true,
+              "observed": 0.8,
+              "limit": 0.7,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:account_takeover",
+              "passed": true,
+              "observed": 0.8529,
+              "limit": 0.7529,
+              "blocking": true
+            },
+            {
+              "name": "segment_recall:card_testing_burst",
+              "passed": true,
+              "observed": 0.9412,
+              "limit": 0.8412,
+              "blocking": true
+            },
+            {
+              "name": "false_escalation_rate",
+              "passed": true,
+              "observed": 0.5476,
+              "limit": 0.6476,
+              "blocking": true
+            },
+            {
+              "name": "reason_accuracy",
+              "passed": true,
+              "observed": 0.56,
+              "limit": 0.51,
+              "blocking": true
+            },
+            {
+              "name": "pass^3",
+              "passed": true,
+              "observed": 0.3667,
+              "limit": 0.3167,
+              "blocking": true
+            },
+            {
+              "name": "cost_per_call_vs_champion",
+              "passed": true,
+              "observed": 1.0,
+              "limit": 1.25,
+              "blocking": false
+            },
+            {
+              "name": "latency_p95_vs_champion",
+              "passed": true,
+              "observed": 0.924,
+              "limit": 1.5,
+              "blocking": false
+            },
+            {
+              "name": "smoke_subset",
+              "passed": true,
+              "observed": "8/12",
+              "limit": ">=8/12 (champion)",
+              "blocking": false
+            }
+          ]
+        }
+      },
+      {
+        "t": 1794252039.6,
+        "step": "D shadow traffic",
+        "release_id": "llm-rel-0004",
+        "traffic": {
+          "requests": 70,
+          "status": {
+            "200": 70
+          },
+          "versions": {
+            "triage-p2": 70
+          },
+          "arms": {
+            "champion": 70
+          },
+          "fallbacks": 0,
+          "labels_sent": 64
+        }
+      },
+      {
+        "t": 1794252352.281,
+        "step": "D canary traffic (baseline)",
+        "release_id": "llm-rel-0004",
+        "traffic": {
+          "requests": 200,
+          "versions": {
+            "triage-p2": 180,
+            "triage-p2-ctx4k": 20
+          },
+          "status": {
+            "200": 200
+          },
+          "fallbacks": 0
+        },
+        "state": "rolled_back"
+      },
+      {
+        "t": 1794252384.05,
+        "step": "post-release traffic",
+        "traffic": {
+          "requests": 30,
+          "status": {
+            "200": 30
+          },
+          "versions": {
+            "triage-p2": 30
+          },
+          "arms": {
+            "champion": 30
+          },
+          "fallbacks": 0,
+          "labels_sent": 27
+        },
+        "versions": {
+          "triage-p2": 30
+        }
+      }
+    ]
+  },
+  "bootstrap_gate": {
+    "champion": "triage-p1",
+    "gate_passed": true,
+    "generation": 1
+  },
+  "event_chain": {
+    "ok": true,
+    "checked": 30,
+    "head": "aa533308e08a0357444d4a26fda7ad84f99bc00e0afb23c74fd703bd39cc0598"
+  },
+  "registry_verify": [
+    {
+      "version": "triage-p1",
+      "ok": true,
+      "problems": [],
+      "artifact_sha256": "a0b53471e700010afa34191de78cb2f2a4377f3acd61a24b9eddc2d9f2a42e7d"
+    },
+    {
+      "version": "triage-p2-ctx4k",
+      "ok": true,
+      "problems": [],
+      "artifact_sha256": "0dd4ce0747fc24d29291dc054c7a3083cabfea5d073e5d7e13b97ba3a736dad9"
+    },
+    {
+      "version": "triage-p2-qwen",
+      "ok": true,
+      "problems": [],
+      "artifact_sha256": "d3ef8f91f1657ec3e60f4d9c89ece1d9e3581061f9e08d3d1efd428f0ead0a3a"
+    },
+    {
+      "version": "triage-p2",
+      "ok": true,
+      "problems": [],
+      "artifact_sha256": "325985cf91018ca49d5b7e88e85360bdadd6433ae14961b22944db0a7528e6e4"
+    },
+    {
+      "version": "triage-p3",
+      "ok": true,
+      "problems": [],
+      "artifact_sha256": "ff85c468f338de5bda417b369ccf2d2803ba504f57639c261403994d55503ace"
+    }
+  ],
+  "postmortem": "runs/llm-demo-20261109-130256/reports/postmortem-llm-rel-0004.md",
+  "policy_sha256": "2b50c0457de3301ce8f02a4aeadcb529f37006a547cc8ac41d3df9b698bcc8cf",
+  "gold_sha256": "7dda8bd30eacc6e41f4101092864ae7ab2a0ff256bf3b150399b81a2d19000e6",
+  "models": {
+    "triage-p1": {
+      "model": "llama3.2:3b",
+      "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+      "bundle_sha256": "a0b53471e700010afa34191de78cb2f2a4377f3acd61a24b9eddc2d9f2a42e7d"
+    },
+    "triage-p2-ctx4k": {
+      "model": "llama3.2:3b",
+      "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+      "bundle_sha256": "0dd4ce0747fc24d29291dc054c7a3083cabfea5d073e5d7e13b97ba3a736dad9"
+    },
+    "triage-p2-qwen": {
+      "model": "qwen2.5-coder:3b",
+      "digest": "f72c60cabf6237b07f6e632b2c48d533cef25eda2efbd34bed21c5e9c01e6225",
+      "bundle_sha256": "d3ef8f91f1657ec3e60f4d9c89ece1d9e3581061f9e08d3d1efd428f0ead0a3a"
+    },
+    "triage-p2": {
+      "model": "llama3.2:3b",
+      "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+      "bundle_sha256": "325985cf91018ca49d5b7e88e85360bdadd6433ae14961b22944db0a7528e6e4"
+    },
+    "triage-p3": {
+      "model": "llama3.2:3b",
+      "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+      "bundle_sha256": "ff85c468f338de5bda417b369ccf2d2803ba504f57639c261403994d55503ace"
+    }
+  },
+  "ollama_url": "http://127.0.0.1:11434",
+  "machine": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.15",
+    "cpu_count": 18,
+    "ram_gb": 48.0,
+    "cpu": "Apple M5 Pro",
+    "load_avg_1m": 28.87
+  },
+  "commit": "6d89c4da64cd4b51ac59554d42cb8f71e530bf08",
+  "command": "uv run scw llm-demo --port 5141 --reuse-evals var/runs/llm-demo-20261109-111237",
+  "reused_offline_results": [
+    "triage-p1-a0b53471e700-gold7dda8bd30eac-k3.jsonl",
+    "triage-p2-325985cf9101-gold7dda8bd30eac-k3.jsonl",
+    "triage-p2-ctx4k-0dd4ce0747fc-gold7dda8bd30eac-k3.jsonl",
+    "triage-p2-qwen-d3ef8f91f165-gold7dda8bd30eac-k3.jsonl",
+    "triage-p3-ff85c468f338-gold7dda8bd30eac-k3.jsonl"
+  ],
+  "commit_at_start": "6d89c4da64cd4b51ac59554d42cb8f71e530bf08",
+  "simulated_traffic": true,
+  "db": "runs/llm-demo-20261109-130256/llm-registry.sqlite"
+}

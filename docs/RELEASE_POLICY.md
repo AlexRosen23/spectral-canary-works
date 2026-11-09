@@ -75,6 +75,13 @@ decision disagreement ≤ 15%.
 Bearer tokens are random per installation (`var/secrets/operators.local.json`, mode 0600, gitignored); the
 server keeps only SHA-256 hashes. This is a demonstrable local control, **not** enterprise IAM.
 
+## LLM lane
+
+Prompt bundles (prompt + model + params) follow the same four gates with LLM evidence: a code-graded regression suite
+with pass^3 and per-segment escalation recall offline, shadow, a 10% canary with online grading plus p95 latency and
+token-cost SLOs, and an input-drift trigger. Thresholds live in `configs/llm/release_policy.toml`; details in
+[`LLM_RELEASE_LANE.md`](LLM_RELEASE_LANE.md).
+
 ## Changing the policy
 
 Edit `configs/release_policy.toml`, run `make test`, and commit. The new SHA-256 appears on every subsequent

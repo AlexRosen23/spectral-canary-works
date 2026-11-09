@@ -27,11 +27,24 @@ module.exports.schemaValid = (output) => {
   return { pass: p.length === 0, score: p.length === 0 ? 1 : 0, reason: p.length ? p.join("; ") : "valid output contract" };
 };
 
-module.exports.escalateCorrect = (output, context) => {
+// Gating on must-escalate alerts only: a missed escalation fails the case. Aggregate "escalate correct" is NOT
+// used as the gate, because a prompt that under-escalates gains on the negatives what it loses on the positives
+// (in the recorded run p3 and the qwen swap had equal or higher overall escalate accuracy than the champion).
+module.exports.escalationCaught = (output, context) => {
+  const must = context.vars.expected_escalate === true || context.vars.expected_escalate === "true";
+  if (!must) return { pass: true, score: 1, reason: "not a must-escalate alert" };
   const o = parse(output);
-  const want = context.vars.expected_escalate === true || context.vars.expected_escalate === "true";
-  const ok = !!o && o.escalate === want;
-  return { pass: ok, score: ok ? 1 : 0, reason: `escalate expected ${want}, got ${o ? o.escalate : "unparseable"}` };
+  const ok = !!o && o.escalate === true;
+  return { pass: ok, score: ok ? 1 : 0, reason: ok ? "escalated" : "MISSED a must-escalate alert" };
+};
+
+// Reported, never gating: over-escalation costs analyst time, it is tracked by the Python gate's margin.
+module.exports.noFalseEscalation = (output, context) => {
+  const must = context.vars.expected_escalate === true || context.vars.expected_escalate === "true";
+  if (must) return { pass: true, score: 1, reason: "must-escalate alert" };
+  const o = parse(output);
+  const ok = !!o && o.escalate === false;
+  return { pass: true, score: ok ? 1 : 0, reason: ok ? "correctly not escalated" : "false escalation (not gating)" };
 };
 
 // Reported, never gating: always passes, scores 1/0 so promptfoo's named metric `reason_correct` is the accuracy.

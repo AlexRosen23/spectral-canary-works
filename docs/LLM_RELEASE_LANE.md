@@ -1,0 +1,165 @@
+# LLM release lane: fraud-alert triage
+
+The same release machinery as the ML lane (immutable registry, offline gate, shadow, 10% canary, automatic
+rollback, hash-chained audit log, generated postmortem), applied to an LLM component. Nothing about *how* a release
+moves or rolls back is reimplemented: `llm/controller.py` subclasses `Controller` and only supplies LLM evidence
+through its hooks (`_offline_gate`, `_staging_smoke`, `_shadow_summary`, `_evaluate_window`,
+`_verification_payloads`, `_write_postmortem`).
+
+> **Honesty labels.** Alerts are synthetic (seeded generator, below). Labels are produced by a fixed decision table in
+> code, not by people and not by a model. Alert traffic is a seeded **simulation**. Every model call is a real call
+> to a local Ollama server (llama3.2:3b, and qwen2.5-coder:3b for the model swap) on a shared laptop; grades, routing,
+> SLO checks and rollbacks are real executions. No hosted API, no keys, nothing deployed.
+
+## The component
+
+Input: a short English summary of a fraud alert. Output: one JSON object
+
+```json
+{"reason_code": "ACCOUNT_TAKEOVER", "escalate": true, "rationale": "Password reset 3 h before on a 40-minute-old device."}
+```
+
+`reason_code` is one of `CARD_TESTING`, `ACCOUNT_TAKEOVER`, `STOLEN_CARD_CNP`, `FRIENDLY_FRAUD`, `BENIGN_ANOMALY`.
+Ollama's structured outputs (`format` = the JSON schema) constrain the shape; the code graders still check it.
+
+## Data: seeded alerts with rule-derived labels (`llm/alerts.py`)
+
+- `sample_alert` draws fields that lean toward one of five archetypes (with ~15% of amounts near the $1,000 line and
+  device/reset ages straddling 24 h), and `render_summary` writes them as English with seeded phrasing and order.
+- `label_alert` is the decision table (first matching reason code; escalate if *any* of three rules fires). The rule
+  names are the evaluation **segments**: `high_value_cnp` (online and >= $1,000), `account_takeover`,
+  `card_testing_burst`.
+- Gold set `evals/triage/triage_gold_v1.jsonl`: 60 dev cases (prompt development only) + 150 test cases (the release
+  gate), fixed per-archetype counts so every segment has support (34 takeover cases in test, 25 of them under the
+  dollar line). `scw llm-gold` / `make llm-gold` regenerates it and fails if the committed file differs.
+- A 12-case **smoke subset** is deliberately *textbook*: its takeover examples are all high-value online purchases,
+  which the dollar rule escalates anyway. It is reported (never gating) to show what a quick review would have seen.
+- Simulated traffic (`iter_traffic`) uses the same sampler with a baseline mix, sticky customer ids for routing, and
+  delayed analyst labels (10% never arrive). `ato_campaign` is a SIMULATED account-takeover surge (50% takeovers).
+
+Scope this buys: the gold set measures whether a prompt + model **follows a written policy**. It does not measure
+fraud judgement, and there are no human labels anywhere in this lane.
+
+## The releasable unit: a prompt bundle (`llm/bundles.py`)
+
+`configs/llm/bundles/<version>.toml` -> one canonical JSON (`prompt_bundle_v1`) with the full prompt text, user
+template, model tag, **Ollama weights digest** (read from `/api/tags` at registration), sampling params, the output
+schema in generation order, owner and change summary. It is written read-only, hashed (SHA-256) and HMAC-signed, and
+inserted through the same immutable `model_versions` table as an ML artifact. A changed prompt character, param or
+weights digest is a different hash; the gate and staging refuse a bundle whose weights behind the tag changed.
+
+| bundle | what changed | role in the story |
+|---|---|---|
+| `triage-p1` | the written policy, temperature 0.2 | champion at bootstrap |
+| `triage-p2` | same policy, rationale capped at 25 words, temperature 0 (greedy) | better-or-equal candidate |
+| `triage-p3` | p2 minus one escalation rule ("reason_code is ACCOUNT_TAKEOVER") | deliberately regressed |
+| `triage-p2-qwen` | p2 prompt and params on `qwen2.5-coder:3b` | model swap (cost/latency vs quality) |
+| `triage-p2-ctx4k` | p2 with `num_ctx` 4096 instead of 2048 (serving config only) | canary rollback |
+
+## Gates (`configs/llm/release_policy.toml`, SHA-256 on every event)
+
+**1. Offline regression suite (`llm/evals.py`, `llm/gates.py`).** Every test case x k=3 tries, each try with its own
+deterministic seed (`sha256(case_id:try)`), sequential calls. Code graders only (`llm/graders.py`): output contract
+(parses, exact keys, enum, boolean, rationale <= 300 chars), reason code, escalate. Reported per try (pass@1) and
+**pass^3** = share of cases fully correct on all three tries (the consistency metric from Anthropic's
+"Demystifying evals for AI agents", 2026-01-09). Blocking checks: bundle integrity, pinned weights, schema validity
+>= 98%; vs the champion (same cases, same k, same seeds): escalation recall on all must-escalate cases (-0.05),
+escalation recall per segment with >= 15 cases (-0.10), false-escalation rate (+0.10), reason accuracy (-0.05),
+pass^3 (-0.05). Cost and latency ratios vs the champion are reported as **advisory** (`cost_latency_blocking = false`):
+offline latency is a sequential measurement on a shared laptop, and the binding check is the canary SLO measured
+on live paired traffic. Raw per-try results are saved as JSONL next to the run.
+
+**2. Shadow.** The champion answers; the candidate runs afterwards on the same alert and is only recorded
+(`test_shadow_never_changes_the_answer`). Canary needs >= 60 shadow requests, candidate failures (errors, timeouts,
+invalid outputs) <= 2%, and, with >= 10 labeled escalations, candidate escalation recall within 0.10 of the champion.
+
+**3. Canary 10%** (same sticky hash as the ML lane, on customer id), evaluated every 200 routed requests:
+
+- *online code grading, label-free:* candidate failures incl. invalid outputs <= 2% (the caller got the champion);
+- *latency SLO:* candidate model-call p95 > 2,000 ms **and** > 1.5x the champion arm's p95 in the same window;
+- *token-cost SLO:* candidate mean notional cost per call > 1.25x the champion arm's (USD 0.10 / 0.40 per million
+  input / output tokens, an assumption: local inference has no per-token bill);
+- *online code grading, labeled and paired:* on candidate-served alerts whose label arrived, the champion was also
+  run; breach when the candidate escalates significantly fewer must-escalate alerts (exact one-sided McNemar
+  p < 0.05, needs >= 10 such alerts);
+- *input drift (extra rollback trigger):* PSI of alert fields vs a fixed reference sample of the baseline mix. With
+  `drift_action = "rollback"`, a major shift (max PSI > 0.25 on >= 150 rows) is a breach: the offline evidence that
+  justified the canary no longer describes the traffic. This differs from the ML lane on purpose, where drift only
+  alerts. With no release active there is nothing to roll back; drift is then visible on `/v1/llm/drift`.
+
+On breach: `Controller.rollback` (one CAS swap + audit event in one transaction), 20 real verification calls that must
+be answered by the champion, and a postmortem generated from the event log (`llm/postmortem.py`). Promotion needs two
+healthy windows, >= 10 paired labeled escalations, fresh evidence, an unchanged bundle hash, and a `release_manager`
+who is not the release creator, exactly as in the ML lane.
+
+## Observability: OpenTelemetry GenAI metrics (`llm/otel.py`)
+
+Each model call records `gen_ai.client.token.usage` (`{token}`, `gen_ai.token.type` input/output) and
+`gen_ai.client.operation.duration` (`s`) with `gen_ai.operation.name=chat`, `gen_ai.provider.name=ollama`,
+`gen_ai.request.model`, `gen_ai.response.model`, `server.address`/`server.port`, `error.type` on failures, the
+spec's explicit bucket boundaries, and two bounded custom attributes (`scw.release.arm`, `scw.bundle.version`). The
+OTel SDK's Prometheus reader registers into the gateway's own registry, so `/metrics`, the Prometheus scrape config
+and the Grafana dashboard (two new panels) pick them up unchanged.
+
+**Status: Development.** These names follow semantic-conventions v1.38.0. On the newer
+`open-telemetry/semantic-conventions-genai` main branch, inference is moving to `gen_ai.client.inference.duration` and
+`gen_ai.client.inference.operation.{input,output}_tokens` (plus usage counters), and `gen_ai.client.operation.duration`
+is no longer meant for inference. The rename is a two-line change in `otel.py`; it was not made because the released
+convention is what current SDK instrumentations emit. (Checked 2026-11-09 against the spec repository.)
+
+Verification: `make up` was **not** run, because port 5120 (and the stack's 5120-5123) belongs to the owner's running
+app. Instead `tests/test_llm_lane.py::test_llm_api_and_genai_metrics` asserts the series on `/metrics` and that every
+`gen_ai_*` series the Grafana panels query is exported; the recorded run saved its `/metrics` output
+(`docs/evidence/llm/<run>/metrics-genai.prom`).
+
+## promptfoo regression gate (`evals/triage/`, `make llm-gate`)
+
+`promptfoo@0.125.1` (exact pin, npm dev dependency, Node >= 22.22) runs the 150 test cases against the local
+Ollama endpoint with the `triage-p2` bundle's exact model, params and output schema (a pytest keeps the YAML and
+the bundle in sync; `SCW_TRIAGE_PROMPT=triage-p3` swaps only the prompt file). JavaScript code graders mirror the
+Python ones. **A case fails when the reply breaks the output contract or when a must-escalate alert is not
+escalated**; false escalations and reason accuracy are reported as named metrics and never fail a case. The pass
+rate is therefore 1 - (invalid + missed escalations) / 150, an escalation-recall gate in pass-rate form.
+`PROMPTFOO_PASS_RATE_THRESHOLD` = 90 (derived in the Makefile from the recorded champion's recall minus the gate's
+0.05 margin) makes `promptfoo eval` exit 100 below it.
+
+Why not "escalate decision correct" as the pass criterion (the first version of this suite)? In the recorded run,
+overall escalate accuracy was 62.0% for the champion p2, 61.3% for the regressed p3 and 69.3% for the qwen swap:
+a model that under-escalates gains on the 84 should-not-escalate cases what it loses on the 66 must-escalate ones.
+A symmetric pass rate would have passed both bad candidates. (Numbers recomputed from the saved per-try files.)
+
+The CI job is defined in `.github/workflows/ci.yml` (`llm-gate`, path-filtered to prompt/bundle/policy/lane
+changes, Ollama as a service container); GitHub Actions stays disabled, so it was run locally and its output saved.
+
+## Recorded run
+
+`make llm-demo` (= `scw llm-demo --port 5141`): fresh registries, p1 bootstrapped through the offline gate
+in-process, then the gateway starts and the whole story runs over real HTTP. Results, generated from the run files:
+[`docs/evidence/llm/`](evidence/llm/). The summary is in [AI_ENGINEER_READINESS.md](AI_ENGINEER_READINESS.md).
+
+| | first run `llm-demo-20261109-111237` | primary run `llm-demo-20261109-130256` |
+|---|---|---|
+| offline suites | all live (5 x 450 calls) | reused from the first run (`--reuse-evals`, same bundle hashes) |
+| p2 | promoted after 2 healthy windows | promoted after 2 healthy windows |
+| p3 / qwen swap | blocked / blocked | blocked / blocked |
+| ctx4k canary window 1 | candidate p95 5,105 ms vs 2,319 ms (2.20x) -> rolled back | 2,830 ms vs 1,342 ms (2.11x) -> rolled back |
+| duration, result | 6,585 s, FAILED (smoke hypothesis was an expectation) | 1,408 s, PASSED |
+
+Model-call latency was about twice as high during the first run (the laptop was busier); the ratio against the
+same-window champion arm, which the SLO uses, was nearly the same.
+
+## Limitations
+
+- A 3B model follows this five-code policy poorly: the promoted champion gets 56% of reason codes and 37% of whole
+  replies right, and escalates 55% of alerts that should not be escalated. The lane is about release engineering;
+  the absolute quality is a property of the model, and it is reported, not hidden.
+- Prompt variants tried on the dev split during development (few-shot examples, rationale-first key order, a
+  key-facts block, a longer analyst rationale) all did worse than p1 for this model; they were pilots, not recorded
+  runs, so no numbers are claimed for them.
+- 150 test cases x 3 tries cannot resolve differences of a few points; the non-inferiority margins are wide for that
+  reason, and a candidate within noise of the champion passes.
+- All graders are code. There is no LLM-as-judge and no human calibration; rationales are only checked for
+  presence and length (and one-sentence form, reported).
+- Canary windows on a laptop are small (about 20 candidate calls per 200 routed requests), so latency p95 per window
+  is noisy; the ratio rule against the same-window champion arm absorbs whole-machine slowdowns, not variance.
+- Labels are delivered by the simulation; in production they would come from analyst dispositions days later.
