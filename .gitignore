@@ -33,3 +33,6 @@ __pycache__/
 # local editor/agent config
 .claude/
 *.tsbuildinfo
+
+# promptfoo local cache/output (the saved gate output is committed under docs/evidence/llm/)
+evals/triage/results/

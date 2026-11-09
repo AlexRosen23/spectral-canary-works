@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: build (the builder stage retrains fixtures and verifies hashes)
         run: docker build -t spectral-canary-works:ci .
-      - name: smoke: readiness, a real prediction, version header, metrics
+      - name: "smoke: readiness, a real prediction, version header, metrics"
         run: |
           docker run -d --name scw -p 5120:5120 --read-only --tmpfs /tmp spectral-canary-works:ci
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5120/readyz && break; sleep 2; done
@@ -102,3 +102,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/iac_validate.sh
+
+  llm-gate:
+    # Prompt/model regression gate for the LLM triage lane. Runs only when prompts, bundles, the policy, the gold set
+    # or the lane's code change. NOT RUN ON GITHUB (Actions disabled); executed locally with `make llm-gate`, output
+    # saved under docs/evidence/llm/. On a GitHub-hosted runner the 3B model runs on CPU (expect ~10-20 min).
+    name: LLM triage regression gate (promptfoo, local Ollama, pass-rate threshold)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      ollama:
+        image: ollama/ollama:latest   # pin to a digest before enabling Actions
+        ports: ["11434:11434"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changed
+        with:
+          filters: |
+            llm:
+              - 'configs/llm/**'
+              - 'evals/triage/**'
+              - 'src/spectral_canary/llm/**'
+      - if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v4
+        with: {node-version: "22.22", cache: npm, cache-dependency-path: evals/triage/package-lock.json}
+      - name: pull the pinned model tag
+        if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
+        run: curl -fsS http://127.0.0.1:11434/api/pull -d '{"model":"llama3.2:3b","stream":false}'
+      - name: promptfoo eval (fails below the pass-rate threshold)
+        if: steps.changed.outputs.llm == 'true' || github.event_name == 'workflow_dispatch'
+        run: make llm-gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: promptfoo-results, path: "evals/triage/results/", retention-days: 7}

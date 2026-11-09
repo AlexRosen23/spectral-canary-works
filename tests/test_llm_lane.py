@@ -309,3 +309,30 @@ def test_llm_api_and_genai_metrics(rt, llm_rt) -> None:
         assert "gen_ai_client_token_usage_bucket{" in m and 'gen_ai_token_type="output"' in m
         assert "gen_ai_client_operation_duration_seconds_bucket{" in m
         assert 'gen_ai_operation_name="chat"' in m and 'gen_ai_request_model="llama3.2:3b"' in m
+        # every metric the Grafana LLM panels query is actually exported
+        import re
+
+        dash = json.loads((Path(__file__).parents[1] / "deploy/grafana/dashboards/gateway.json").read_text())
+        exprs = [t["expr"] for p in dash["panels"] if p["title"].startswith("LLM triage") for t in p["targets"]]
+        names = {n for e in exprs for n in re.findall(r"\b(gen_ai_[a-z_]+_(?:bucket|sum|count))\b", e)}
+        assert len(names) >= 3 and all(f"\n{n}{{" in m for n in names), names
+
+
+def test_promptfoo_config_matches_bundle() -> None:
+    """The promptfoo CI suite must test exactly the bundle it claims to (model, params, output contract)."""
+    import tomllib
+
+    import yaml
+
+    root = Path(__file__).parents[1]
+    cfg = yaml.safe_load((root / "evals/triage/promptfooconfig.yaml").read_text())
+    prov = cfg["providers"][0]
+    spec = tomllib.loads((root / "configs/llm/bundles/triage-p2.toml").read_text())
+    assert prov["id"] == f"ollama:chat:{spec['model']}"
+    for k, v in spec["params"].items():
+        assert prov["config"][k] == v, k
+    from spectral_canary.llm.graders import OUTPUT_SCHEMA
+
+    assert prov["config"]["format"] == OUTPUT_SCHEMA
+    assert "triage-p2" in (root / "evals/triage/prompt.cjs").read_text()
+    assert spec["prompt_file"].endswith("triage-p2.md") and spec["user_template"] == "Fraud alert:\n{summary}"

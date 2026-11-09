@@ -219,6 +219,67 @@
           "legendFormat": "canary fraction"
         }
       ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "LLM triage: model-call p95 by bundle and arm (gen_ai.client.operation.duration, OTel GenAI semconv, Development status)",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, scw_bundle_version, scw_release_arm) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_operation_name=\"chat\"}[5m])))",
+          "legendFormat": "{{scw_bundle_version}} {{scw_release_arm}} p95"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (error_type) (rate(gen_ai_client_operation_duration_seconds_count{error_type!=\"\"}[5m]))",
+          "legendFormat": "errors {{error_type}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "LLM triage: mean tokens per call by type and bundle (gen_ai.client.token.usage)",
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scw-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (gen_ai_token_type, scw_bundle_version) (rate(gen_ai_client_token_usage_sum[5m])) / sum by (gen_ai_token_type, scw_bundle_version) (rate(gen_ai_client_token_usage_count[5m]))",
+          "legendFormat": "{{scw_bundle_version}} {{gen_ai_token_type}}"
+        }
+      ]
     }
   ]
 }
