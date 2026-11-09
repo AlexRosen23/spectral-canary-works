@@ -82,7 +82,7 @@ def llm_router(
             "active_release": rt.controller.active_release(),
             "latest_release": rels[-1] if rels else None,
             "event_chain": rt.store.verify_event_chain(),
-            "db": rt.db_path.parent.name + "/" + rt.db_path.name,
+            "db": rt.db_path.resolve().parent.name + "/" + rt.db_path.name,
             "policy_sha256": rt.policy.sha256,
             "gold_sha256": rt.gold_sha,
             "backend": getattr(rt.backend, "provider", "unknown"),

@@ -47,7 +47,11 @@ Full write-up: [`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md) · what th
 Engineer roles: [`docs/AI_ENGINEER_READINESS.md`](docs/AI_ENGINEER_READINESS.md) · walkthrough video
 [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm).
 
-![LLM lane in the control room](docs/media/llm-lane-releases.png)
+![LLM lane in the control room: four bundle releases and their gate numbers](docs/media/llm-lane-releases.png)
+
+| automatic rollback of the config-only change, with its generated postmortem | the ML lane in the same control room |
+|---|---|
+| ![rollback](docs/media/llm-lane-rollback.png) | ![ML lane](docs/media/control-room-ml-lane.png) |
 
 ## Quickstart (native macOS, CPU)
 
