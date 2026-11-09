@@ -22,5 +22,6 @@ Runs:
   as FAILED only because it treated "the smoke subset would have shipped p3" as a pass/fail expectation, which did
   not hold for this model (see `docs/AI_ENGINEER_READINESS.md`). Every release decision matched the expectation.
 - [`promptfoo/`](promptfoo/): `make llm-gate` output for the champion prompt and for the regressed prompt. `triage-p2.github-cpu.*`: the same
-  champion on a GitHub CPU runner (84.7%). `relative.github-cpu.*`: the relative CI gate (`make llm-gate-relative`),
-  base and head both 127/150 on one runner, PASS (run 42701455881).
+  champion on a GitHub CPU runner (84.7%). `relative.github-runs.json`: the relative CI gate
+  (`make llm-gate-relative`) on three GitHub runners (two PASS with base = head, one FAIL for the regressed prompt);
+  `relative.github-cpu.*`: the first run's promptfoo outputs and verdict.

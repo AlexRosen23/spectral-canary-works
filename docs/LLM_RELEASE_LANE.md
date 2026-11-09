@@ -165,16 +165,24 @@ It runs on pull requests that touch `configs/llm/`, `evals/triage/`, `src/spectr
 `scripts/llm_gate_*`, the `Makefile` or the workflow (a `changes` job with `dorny/paths-filter` decides, so the
 Ollama container starts only then), and on manual dispatch (`gh workflow run ci --ref <branch> -f
 llm_gate_base_ref=main`; add `-f llm_gate_head_prompt=triage-p3` to score the regressed prompt as the head and watch
-the gate fail). Two suite runs take about 20 minutes on the CPU runner.
+the gate fail). Two suite runs take 26–41 minutes on a CPU runner, depending on which CPU it gets.
 
-**Recorded on GitHub (2026-11-09, PR #6, run
-[42701455881](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881)).** Base
-`docs/readme-writeup` (9bda89b) and head (the PR merge commit) both scored **127/150 (84.67%)** on the CPU runner:
-change +0.00, margin 2.20, **PASS**. The step took 27 minutes (13m 19s + 12m 54s of suite time). The failed case ids
-were identical in base, head and the earlier CPU run 42692611563. The raw reply text matched for 150/150 cases between
-base and that earlier run, but for 149/150 between base and head: one reply was worded differently with the same
-grade. So even one runner isn't perfectly bit-stable, which is one reason the gate keeps a margin rather than
-requiring equality. Evidence: `docs/evidence/llm/promptfoo/relative.github-cpu.*`. On the build machine (Metal),
+**Recorded on GitHub (2026-11-09, PR #6).** Base `docs/readme-writeup` (9bda89b, champion `triage-p2`) in every run:
+
+| run | runner CPU (Ollama kernel) | base | head | change | verdict |
+|---|---|---|---|---|---|
+| [42701455881](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881) (PR) | AMD EPYC 9V74 (zen4, AVX-512) | 127/150 | 127/150 (PR merge) | +0.00 | **PASS** |
+| [42706176139](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706176139) (PR) | AMD EPYC 7763 (haswell, AVX2) | 136/150 | 136/150 (PR merge) | +0.00 | **PASS** |
+| [42706182502](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706182502) (dispatch) | Intel Xeon 8370C (icelake, AVX-512) | 127/150 | 104/150 (`triage-p3`) | −15.33 | **FAIL** (exit 2) |
+
+The same champion scored 127 on two runners and **136 on the third**. GitHub assigns different CPUs, and Ollama
+picks a different kernel for each, so an absolute threshold doesn't hold even from one GitHub runner to the next. Base
+and head on one runner matched exactly in both PASS runs, and the regressed prompt fell far outside the margin. In
+the first run the failed case ids were also identical to the earlier CPU run 42692611563. The raw reply text matched
+for 150/150 cases between base and that run, but for 149/150 between base and head (one reply worded differently,
+same grade). So even one runner isn't perfectly bit-stable, which is one reason the gate keeps a margin rather than
+requiring equality. Evidence: `docs/evidence/llm/promptfoo/relative.github-runs.json` (all three runs) and
+`relative.github-cpu.*` (the first run's outputs and verdict). On the build machine (Metal),
 `make llm-gate-relative` scored 139/150 for both runs (PASS), and with `LLM_GATE_HEAD_PROMPT=triage-p3` scored the
 head 111/150, −18.67 points, **FAIL** (`make` exits 2).
 

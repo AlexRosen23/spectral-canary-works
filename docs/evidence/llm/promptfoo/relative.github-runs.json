@@ -1,0 +1,58 @@
+{
+  "what": "make llm-gate-relative in the CI llm-gate job: PR base and head scored back to back on one GitHub runner (Ollama 0.40.13 CPU backend, llama3.2:3b a80c4f17acd5, same prompt/params/seed). Margin 2.20 points = 100 x 0.05 x 66/150.",
+  "finding": "the same champion prompt scores 127/150 on zen4/icelake kernels and 136/150 on the haswell (AVX2) kernel, so an absolute threshold does not even hold across GitHub runners; base and head on one runner matched exactly in both PASS runs, and the regressed prompt dropped 15.33 points -> FAIL",
+  "recorded_utc": "2026-11-09",
+  "runs": [
+    {
+      "github_run": "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881",
+      "event": "pull_request (PR #6, head 0509e06)",
+      "cpu": "AMD EPYC 9V74",
+      "ollama_cpu_backend": "libggml-cpu-zen4 (AVX-512)",
+      "base": "docs/readme-writeup 9bda89b, bundle default (triage-p2)",
+      "base_passed": 127,
+      "head": "merge 2d653b5, bundle default",
+      "head_passed": 127,
+      "cases": 150,
+      "change_points": 0.0,
+      "verdict": "PASS",
+      "suite_minutes": [
+        13.3,
+        12.9
+      ]
+    },
+    {
+      "github_run": "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706176139",
+      "event": "pull_request (PR #6, head d4cea19)",
+      "cpu": "AMD EPYC 7763",
+      "ollama_cpu_backend": "libggml-cpu-haswell (AVX2, no AVX-512)",
+      "base": "docs/readme-writeup 9bda89b, bundle default (triage-p2)",
+      "base_passed": 136,
+      "head": "merge eaffd65, bundle default",
+      "head_passed": 136,
+      "cases": 150,
+      "change_points": 0.0,
+      "verdict": "PASS",
+      "suite_minutes": [
+        18.2,
+        17.8
+      ]
+    },
+    {
+      "github_run": "https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706182502",
+      "event": "workflow_dispatch on feat/relative-llm-gate d4cea19, llm_gate_head_prompt=triage-p3",
+      "cpu": "Intel Xeon Platinum 8370C",
+      "ollama_cpu_backend": "libggml-cpu-icelake (AVX-512)",
+      "base": "docs/readme-writeup 9bda89b, bundle default (triage-p2)",
+      "base_passed": 127,
+      "head": "d4cea19 with SCW_TRIAGE_PROMPT=triage-p3 (the regressed prompt)",
+      "head_passed": 104,
+      "cases": 150,
+      "change_points": -15.33,
+      "verdict": "FAIL (make exit 2)",
+      "suite_minutes": [
+        20.6,
+        20.1
+      ]
+    }
+  ]
+}
