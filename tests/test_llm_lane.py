@@ -229,6 +229,8 @@ def test_llm_release_story_in_process(llm_rt) -> None:
     res = llm_release_story(LLMInProcessDriver(llm_rt), "pytest-llm")
     assert res["passed"], json.dumps({"expected": res["expected"], "actual": res["actual"]}, indent=1)
     assert llm_rt.store.verify_event_chain()["ok"]
+    # scripted p3 only forgets the low-value takeover rule: the textbook smoke subset cannot see it
+    assert res["observations"]["B_smoke_subset"]["would_have_shipped"] is True
     rid = res["release_ids"]["D"]
     pm = (llm_rt.report_dir / f"postmortem-{rid}.md").read_text()
     assert "input drift" in pm and "simulated" in pm.lower()

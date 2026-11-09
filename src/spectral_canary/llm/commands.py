@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import time
+from pathlib import Path
 from typing import Any
 
 from ..paths import state_paths
@@ -86,9 +87,21 @@ def cmd_llm_demo(args: argparse.Namespace) -> int:
         return 2
     run_dir = new_run_dir(paths, "llm-demo")
     started = time.time()
+    commit0 = git_commit()
     log = lambda m: print(m, flush=True)  # noqa: E731
     log(f"[llm-demo] run {run_dir.name}")
     fixture_runtime(run_dir).close()  # the ML lane's fixture registry, so the same gateway serves both lanes
+    reused: list[str] = []
+    if args.reuse_evals:
+        # Offline suite results are keyed by bundle sha256 + gold sha256 + k, so a finished suite of the same
+        # immutable bundle can be reused instead of re-calling the model; gate reports then say reused_previous_run.
+        import shutil
+
+        (run_dir / "evals").mkdir(exist_ok=True)
+        for p in sorted(Path(args.reuse_evals).glob("evals/*.jsonl")):
+            shutil.copy2(p, run_dir / "evals" / p.name)
+            reused.append(p.name)
+        log(f"[llm-demo] reusing {len(reused)} offline suite result files from {args.reuse_evals}")
     rt = build_llm_runtime(db_path=run_dir / DB_NAME, report_dir=run_dir / "reports", log=log)
     rt.store.run_id = run_dir.name
     reg = register_all_bundles(rt.store, rt.paths, be)
@@ -145,7 +158,11 @@ def cmd_llm_demo(args: argparse.Namespace) -> int:
         "ollama_url": be.base_url,
         "machine": machine_info(),
         "commit": git_commit(),
-        "command": "uv run scw llm-demo --port " + str(args.port),
+        "command": "uv run scw llm-demo --port "
+        + str(args.port)
+        + (f" --reuse-evals {args.reuse_evals}" if args.reuse_evals else ""),
+        "reused_offline_results": reused,
+        "commit_at_start": commit0,
         "simulated_traffic": True,
         "db": str((run_dir / DB_NAME).relative_to(paths.home)),
     }
@@ -179,4 +196,10 @@ def add_parsers(sub: Any) -> None:
     p = sub.add_parser("llm-demo", help="the LLM release story over real HTTP with real Ollama calls")
     p.add_argument("--port", type=int, default=int(os.environ.get("SCW_LLM_DEMO_PORT", "5141")))
     p.add_argument("--scale", type=float, default=1.0)
+    p.add_argument(
+        "--reuse-evals",
+        metavar="RUN_DIR",
+        default=None,
+        help="reuse offline suite JSONL files of the same bundles from an earlier run directory",
+    )
     p.set_defaults(fn=cmd_llm_demo)

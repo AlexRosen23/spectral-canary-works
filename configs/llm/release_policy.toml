@@ -18,7 +18,6 @@ max_pass_k_drop = 0.05
 max_cost_ratio_vs_champion = 1.25
 max_latency_p95_ratio_vs_champion = 1.5
 cost_latency_blocking = false       # offline cost/latency is reported; the binding check is the canary SLO
-smoke_min_passed = 10               # informational only: the 12-case textbook smoke check never blocks
 
 [shadow]
 min_requests = 60

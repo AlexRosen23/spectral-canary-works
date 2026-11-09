@@ -201,6 +201,7 @@ def llm_release_story(
     steps: list[dict[str, Any]] = []
     expected: dict[str, Any] = {}
     actual: dict[str, Any] = {}
+    observations: dict[str, Any] = {}
 
     # A: p1 -> p2 (better-or-equal): gate, shadow, canary, approval
     a = driver.propose(GOOD)
@@ -268,8 +269,13 @@ def llm_release_story(
     actual["B_blocked_on_account_takeover_segment"] = any(
         "segment_recall:account_takeover" in r for r in (gv["blocking_reasons"] or [])
     )
-    expected["B_smoke_subset_passed"] = True
-    actual["B_smoke_subset_passed"] = bool(smoke.get("passed"))
+    # Observation, not a pass/fail expectation: did the 12-case textbook smoke check (relative to the champion) also
+    # notice the regression? By design it should not; with a weak 3B model the dropped rule can leak elsewhere.
+    observations["B_smoke_subset"] = {
+        "candidate": smoke.get("observed"),
+        "limit": smoke.get("limit"),
+        "would_have_shipped": bool(smoke.get("passed")),
+    }
 
     # C: model swap (same prompt and params on qwen2.5-coder:3b): the gate reports quality AND cost/latency
     c = driver.propose(SWAP)
@@ -349,6 +355,7 @@ def llm_release_story(
         "passed": all(actual.get(k) == expected[k] for k in keys),
         "expected": expected,
         "actual": actual,
+        "observations": observations,
         "release_ids": {"A": a["release_id"], "B": b["release_id"], "C": c["release_id"], "D": d["release_id"]},
         "steps": steps,
     }

@@ -204,12 +204,15 @@ def run_llm_offline_gate(
             )
         )
     sm = cs["smoke"]
+    # Relative to the champion on the same 12 textbook cases: "would a quick look have noticed a regression?"
+    # (An absolute bar was tried first; the 3B champions themselves scored 8/12, so it said nothing.)
+    ref = hs["smoke"]["passed_cases"] if hs else None
     checks.append(
         _check(
             "smoke_subset",
-            sm["passed_cases"] >= gp.smoke_min_passed,
+            ref is None or sm["passed_cases"] >= ref,
             f"{sm['passed_cases']}/{sm['cases']}",
-            f">={gp.smoke_min_passed}/{sm['cases']}",
+            "no champion" if ref is None else f">={ref}/{sm['cases']} (champion)",
             "informational: the 12-case textbook smoke check a quick review would run (escalate decision, try 0)",
             blocking=False,
         )

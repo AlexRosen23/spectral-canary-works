@@ -35,7 +35,6 @@ class LLMOfflineGatePolicy(BaseModel):
     max_cost_ratio_vs_champion: float = 1.25
     max_latency_p95_ratio_vs_champion: float = 1.5
     cost_latency_blocking: bool = False
-    smoke_min_passed: int = 10  # informational smoke check: >= 10 of the 12 textbook cases
 
 
 class LLMShadowPolicy(BaseModel):
