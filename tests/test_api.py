@@ -124,3 +124,32 @@ def test_traffic_series_reflects_requests(client, rt) -> None:
     s = client.get("/v1/traffic/series", params={"bucket": 10}).json()
     assert s["total"] >= 30
     assert s["series"][-1]["simulated_share"] == 1.0
+
+
+def test_tampered_champion_fails_closed_without_crashing(scw_home, tmp_path) -> None:
+    """Champion bytes change on disk -> gateway still starts, /readyz 503, predictions 503 (never a score)."""
+    import os
+    import shutil
+
+    from spectral_canary.fixtures import fixture_runtime
+    from spectral_canary.paths import state_paths
+
+    home = tmp_path / "home"
+    src = state_paths(scw_home)
+    shutil.copytree(src.data, home / "data")
+    shutil.copytree(src.artifacts, home / "artifacts")
+    shutil.copytree(src.home / "secrets", home / "secrets")
+    rt = fixture_runtime(tmp_path / "run", home=home)
+    rt.close()
+    f = home / "artifacts" / "v1-logreg" / "model.skops"
+    os.chmod(f, 0o644)
+    data = bytearray(f.read_bytes())
+    data[len(data) // 2] ^= 0xFF
+    f.write_bytes(bytes(data))
+    rt2 = fixture_runtime(tmp_path / "run", home=home)  # "restart" against the same registry
+    with TestClient(create_app(rt2, start_background=False)) as c:
+        r = c.get("/readyz")
+        assert r.status_code == 503 and "artifact_hash_mismatch" in " ".join(r.json()["problems"])
+        p = c.post("/v1/predict", json={"features": _features(rt2)})
+        assert p.status_code == 503 and p.json()["error"] == "champion_unavailable"
+    rt2.close()

@@ -299,7 +299,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
         from .fixtures import fixture_runtime, point_latest
 
         paths = state_paths().ensure()
-        run_dir = paths.runs / args.bootstrap_fixture
+        # Key the registry to the exact artifact bytes: a rebuilt image (new artifact hashes) gets a fresh
+        # fixture registry instead of failing integrity checks against an old one in a persistent volume.
+        import hashlib
+
+        hashes = "".join(
+            json.loads(p.read_text())["artifact"]["sha256"] for p in sorted(paths.artifacts.glob("*/manifest.json"))
+        )
+        run_dir = paths.runs / f"{args.bootstrap_fixture}-{hashlib.sha256(hashes.encode()).hexdigest()[:10]}"
         fixture_runtime(run_dir).close()
         point_latest(paths, run_dir)
         os.environ["SCW_DB"] = str(run_dir / "registry.sqlite")

@@ -177,6 +177,7 @@ class Snapshot:
     champion: LoadedModel | None
     candidate: LoadedModel | None
     candidate_error: str | None = None
+    champion_error: str | None = None
 
 
 @dataclass
@@ -267,15 +268,23 @@ class InferenceService:
             snap = self._snap
             if snap is not None and snap.deployment.generation == dep.generation:
                 return snap
-            champion = self.pool.get(dep.champion_version) if dep.champion_version else None
+            champion, champ_err = None, None
+            if dep.champion_version:
+                try:
+                    champion = self.pool.get(dep.champion_version)
+                except art.ArtifactError as exc:
+                    # Fail closed but stay up: /readyz reports it and predictions return 503. Not cached, so
+                    # a fixed artifact or a recovery swap is picked up on the next request.
+                    champ_err = str(exc)
             candidate, cand_err = None, None
             if dep.candidate_version and dep.mode in ("shadow", "canary"):
                 try:
                     candidate = self.pool.get(dep.candidate_version)
                 except art.ArtifactError as exc:
                     cand_err = str(exc)  # candidate unhealthy: routing falls back to champion
-            snap = Snapshot(dep, champion, candidate, cand_err)
-            self._snap = snap
+            snap = Snapshot(dep, champion, candidate, cand_err, champ_err)
+            if champ_err is None:
+                self._snap = snap
             tm.DEPLOYMENT_GENERATION.set(dep.generation)
             tm.CANARY_FRACTION.set(dep.canary_fraction if dep.mode == "canary" else 0.0)
             return snap
@@ -344,7 +353,12 @@ class InferenceService:
         if snap.champion is None:
             return PredictOutcome(
                 503,
-                {"error": "no_champion_deployed", "request_id": request_id, "trace_id": trace_id},
+                {
+                    "error": "champion_unavailable" if snap.champion_error else "no_champion_deployed",
+                    "detail": snap.champion_error,
+                    "request_id": request_id,
+                    "trace_id": trace_id,
+                },
                 {"X-Trace-Id": trace_id, "Retry-After": "5"},
             )
 
