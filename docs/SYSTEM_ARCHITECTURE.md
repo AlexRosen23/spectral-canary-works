@@ -34,7 +34,7 @@
 | compose stack (gateway, web, traffic, Prometheus, Grafana) | LOCAL-DOCKER | `make up` / `make down` |
 | `infra/local` (Docker provider) | IaC-VALIDATED | `cd infra/local && tofu apply` (local Docker only) |
 | `infra/aws` | IaC-VALIDATED, **NOT PROVISIONED** | `scripts/aws_deploy.sh` (refuses without `SCW_CONFIRM_BILLABLE=yes`) |
-| GitHub Actions CI | defined, **not enabled** (owner decision) | `make ci` runs the same checks locally |
+| GitHub Actions CI | **enabled** (2026-11-09), pull requests + manual dispatch | `make ci` runs the same checks locally |
 
 ## Request path and its costs
 

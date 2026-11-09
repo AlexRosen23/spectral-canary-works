@@ -60,7 +60,8 @@ outgoing commits.
 
 ## CI and deployment status
 
-- `.github/workflows/ci.yml` is **defined but GitHub Actions is disabled** on this private repo. Enabling it
-  is the owner's decision. `make ci` runs the same checks locally.
+- GitHub Actions is **enabled** (owner decision, 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on every
+  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). `make ci` runs the python and web
+  jobs locally; `make workflow-lint` checks the workflow file itself before you push.
 - Nothing is deployed. The AWS path in `infra/aws` is implemented and validated but not provisioned (see
   `docs/DEPLOYMENT_RUNBOOK.md`).

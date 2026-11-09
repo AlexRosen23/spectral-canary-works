@@ -2,8 +2,9 @@
 
 ## Incurred to date: **US$0.00**
 
-Nothing in this repository has been deployed to any cloud account. GitHub Actions is disabled on the repo,
-so CI minutes used are 0 as well. Everything verified so far ran on the owner's Mac (native and Docker/OrbStack).
+Nothing in this repository has been deployed to any cloud account. GitHub Actions was enabled on
+2026-11-09 and runs on pull requests and manual dispatch only; its minutes come out of the GitHub Free
+private-repo allowance (2,000 min/month, shared across the owner's private repos), not a paid plan. Everything verified so far ran on the owner's Mac (native and Docker/OrbStack).
 
 ## Estimated cost of the optional AWS path (`infra/aws`, NOT PROVISIONED)
 
