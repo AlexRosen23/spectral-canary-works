@@ -6,7 +6,8 @@ Definitions (also in docs/DRIFT_AND_LIMITATIONS.md):
 - *Error rate* = candidate-arm requests where the candidate errored, timed out or was unavailable
   (the user still got a champion answer via fallback, but the candidate failed its job).
 - *Flag-rate guardrail (label-free)*: breach when the candidate flags materially fewer transactions than
-  the champion arm and the 95% Newcombe CI of the difference excludes 0.
+  the champion arm and the 95% Newcombe CI of the difference excludes 0. Computed on ONE observation per
+  routing key (card): requests from the same card are correlated, cards are independent.
 - *Recall guardrail (labeled, delayed)*: on candidate-arm requests whose ground-truth label has arrived
   and is positive, the champion was also scored (paired). Breach when the exact one-sided McNemar test
   says the candidate misses significantly more frauds (p < 0.01) and recall delta < -margin.
@@ -86,6 +87,21 @@ def shadow_summary(rows: list[dict[str, Any]], policy: ShadowPolicy) -> dict[str
     return out
 
 
+def one_per_key(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """First row per routing key (card). Routing is sticky per key and one card can send many requests, so
+    requests are clustered; statistical tests use one observation per key, which ARE independent because
+    the routing hash randomizes keys into arms. (Found in the c=32 load test: 146 candidate requests came
+    from 38 cards and a request-level CI produced a false breach.)"""
+    seen: set[str] = set()
+    out = []
+    for r in sorted(rows, key=lambda x: x["seq"]):
+        k = r.get("request_key") or r["request_id"]
+        if k not in seen:
+            seen.add(k)
+            out.append(r)
+    return out
+
+
 def _arm_stats(rows: list[dict[str, Any]], arm: str) -> dict[str, Any]:
     a = [r for r in rows if r["arm"] == arm and r["status"] == "ok"]
     if arm == "candidate":
@@ -94,6 +110,8 @@ def _arm_stats(rows: list[dict[str, Any]], arm: str) -> dict[str, Any]:
     else:
         served, failed = a, []
     flags = int(sum(r["decision"] for r in served))
+    per_key = one_per_key(served)
+    key_flags = int(sum(r["decision"] for r in per_key))
     col = "shadow_latency_ms" if arm == "candidate" else "champion_latency_ms"
     return {
         "requests": len(a),
@@ -103,6 +121,9 @@ def _arm_stats(rows: list[dict[str, Any]], arm: str) -> dict[str, Any]:
         "flagged": flags,
         "flag_rate": round(flags / len(served), 4) if served else None,
         "flag_rate_ci95": [round(v, 4) for v in wilson_interval(flags, len(served))],
+        "keys": len(per_key),
+        "flagged_keys": key_flags,
+        "key_flag_rate": round(key_flags / len(per_key), 4) if per_key else None,
         "latency_ms": percentiles([r["latency_ms"] for r in served]),
         # model-call latency only (what the arm's model itself costs), not the whole handler
         "model_latency_ms": percentiles([r[col] for r in served if r.get(col) is not None]),
@@ -121,7 +142,7 @@ def _labeled(rows: list[dict[str, Any]]) -> dict[str, Any]:
             and r.get("label") is not None
             and (arm == "champion" or r.get("shadow_status") == "ok")
         ]
-        pos = [r for r in a if r["label"] == 1]
+        pos = one_per_key([r for r in a if r["label"] == 1])  # independent unit: one labeled fraud per card
         tp = int(sum(r["decision"] for r in pos))
         out[arm] = {
             "labeled": len(a),
@@ -133,14 +154,16 @@ def _labeled(rows: list[dict[str, Any]]) -> dict[str, Any]:
     c, h = out["candidate"], out["champion"]
     lo, hi = newcombe_diff_interval(c["tp"], c["labeled_positives"], h["tp"], h["labeled_positives"])
     out["arm_recall_diff_ci95"] = [round(lo, 4), round(hi, 4)]
-    paired = [
-        r
-        for r in rows
-        if r["arm"] == "candidate"
-        and r.get("shadow_status") == "ok"
-        and r.get("label") == 1
-        and r.get("champion_decision") is not None
-    ]
+    paired = one_per_key(
+        [
+            r
+            for r in rows
+            if r["arm"] == "candidate"
+            and r.get("shadow_status") == "ok"
+            and r.get("label") == 1
+            and r.get("champion_decision") is not None
+        ]
+    )
     b = sum(1 for r in paired if r["champion_decision"] == 1 and r["decision"] == 0)
     cc = sum(1 for r in paired if r["champion_decision"] == 0 and r["decision"] == 1)
     cand_tp = sum(r["decision"] for r in paired)
@@ -187,11 +210,10 @@ def evaluate_canary_window(
                 f"candidate model p95 latency {p95:.1f} ms > budget {policy.latency_p95_budget_ms} ms "
                 f"and {p95 / ref:.1f}x the champion's {ref:.1f} ms in the same window"
             )
-        if cand["flag_rate"] is not None and champ["flag_rate"]:
-            ratio = cand["flag_rate"] / champ["flag_rate"]
-            lo, hi = newcombe_diff_interval(
-                cand["flagged"], cand["served_by_arm_model"], champ["flagged"], champ["served_by_arm_model"]
-            )
+        if cand["key_flag_rate"] is not None and champ["key_flag_rate"]:
+            # one observation per card (see one_per_key): request-level counts overstate the evidence
+            ratio = cand["key_flag_rate"] / champ["key_flag_rate"]
+            lo, hi = newcombe_diff_interval(cand["flagged_keys"], cand["keys"], champ["flagged_keys"], champ["keys"])
             cand["flag_rate_ratio_vs_champion"] = round(ratio, 4)
             cand["flag_rate_diff_ci95"] = [round(lo, 4), round(hi, 4)]
             if ratio < 1 - policy.max_flag_rate_ratio_drop and hi < 0:

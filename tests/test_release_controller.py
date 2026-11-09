@@ -179,6 +179,9 @@ def test_in_flight_requests_survive_pointer_swaps(rt) -> None:
 def test_guardrail_ignores_small_samples() -> None:
     rows = [
         {
+            "seq": i,
+            "request_id": f"r{i}",
+            "request_key": f"k{i}",
             "arm": "candidate",
             "status": "ok",
             "shadow_status": "ok",
@@ -188,7 +191,7 @@ def test_guardrail_ignores_small_samples() -> None:
             "champion_decision": 1,
             "simulated": 1,
         }
-        for _ in range(10)
+        for i in range(10)
     ]
     ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
     assert ev["verdict"] == "insufficient_evidence" and not ev["breaches"]
@@ -211,3 +214,36 @@ def test_degraded_candidate_rolls_back_under_shift_only(rt) -> None:
     assert rt.store.deployment().champion_version == "v2-hgb"
     kinds = [e["kind"] for e in rt.store.events(release_id=rid)]
     assert kinds.index("rollback.executed") < kinds.index("rollback.verified") < kinds.index("postmortem.written")
+
+
+def test_guardrail_counts_cards_not_requests() -> None:
+    """Regression (found in the c=32 load test): 140 candidate requests from 35 cards, none flagged, must not
+    breach on a CI that pretends the 140 requests are independent."""
+
+    def row(seq: int, arm: str, key: str, decision: int) -> dict:
+        return {
+            "seq": seq,
+            "request_id": f"r{seq}",
+            "request_key": key,
+            "arm": arm,
+            "status": "ok",
+            "shadow_status": "ok" if arm == "candidate" else None,
+            "decision": decision,
+            "latency_ms": 2.0,
+            "shadow_latency_ms": 1.0,
+            "champion_latency_ms": 1.0,
+            "label": None,
+            "simulated": 1,
+        }
+
+    rows, seq = [], 0
+    for _rep in range(4):  # 35 candidate cards, each repeated 4x, never flagged
+        for k in range(35):
+            seq += 1
+            rows.append(row(seq, "candidate", f"cand-{k}", 0))
+    for k in range(1300):  # champion arm: 1300 distinct cards, ~4.3% flagged
+        seq += 1
+        rows.append(row(seq, "champion", f"champ-{k}", int(k % 23 == 0)))
+    ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
+    assert ev["arms"]["candidate"]["keys"] == 35
+    assert not any("flags" in b for b in ev["breaches"]), ev["breaches"]
