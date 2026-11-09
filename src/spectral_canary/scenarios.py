@@ -310,6 +310,50 @@ def chaos_candidate_timeout(driver: Any, run_id: str) -> dict[str, Any]:
     }
 
 
+def chaos_gateway_saturation(driver: Any, run_id: str) -> dict[str, Any]:
+    """Load test finding 5, reproduced: the whole gateway is slow (the champion's own calls too) and the candidate's
+    calls time out. That is capacity, not evidence against the candidate: pause (candidate out of traffic, nothing
+    blamed on the model), then resume once capacity is back. Contrast candidate_timeout, where the champion stays
+    fast and the same timeouts roll the candidate back."""
+    rid = _canary(driver, "v2-hgb", run_id)
+    champion = driver.deployment()["champion_version"]
+    driver.set_fault(champion, latency_ms=60.0, note="SIMULATED saturation: champion calls slow too")
+    driver.set_fault("v2-hgb", latency_ms=650.0, note="SIMULATED saturation: candidate calls queue past the timeout")
+    s = run_traffic(driver, f"{run_id}-c", [Phase(BASE, 340, 1101, "saturated gateway")])
+    driver.clear_faults()
+    rel = driver.release(rid)
+    ev = rel.get("last_evaluation") or {}
+    kinds = [e["kind"] for e in driver.rt.store.events(release_id=rid, limit=100_000)]
+    dep = driver.deployment()
+    paused_ok = (
+        rel["state"] == "paused"
+        and ev.get("verdict") == "inconclusive_saturated"
+        and dep["mode"] == "none"
+        and dep["champion_version"] == champion
+        and "rollback.executed" not in kinds
+        and "postmortem.written" not in kinds
+        and set(s["by_phase"]["saturated gateway"]["status"]) == {"200"}
+    )
+    resumed = driver.canary(rid)  # an operator resumes once capacity is back; evidence starts over
+    passed = paused_ok and resumed["state"] == "canary" and resumed["healthy_windows"] == 0
+    driver.rt.controller.pause(rid, actor="chaos-replay", reason="chaos scenario finished")
+    return {
+        "scenario": "gateway_saturation",
+        "passed": passed,
+        "expected": "champion slow too + candidate timeouts -> inconclusive_saturated, PAUSE (no rollback, "
+        "no postmortem), users kept getting answers; resume restarts the canary",
+        "observed": {
+            "state_after_window": rel["state"],
+            "verdict": ev.get("verdict"),
+            "reason": rel.get("reason"),
+            "saturation": ev.get("saturation"),
+            "http_statuses": s["by_phase"]["saturated gateway"]["status"],
+            "rollback_events": kinds.count("rollback.executed"),
+            "state_after_resume": resumed["state"],
+        },
+    }
+
+
 def chaos_partial_outage(driver: Any, run_id: str) -> dict[str, Any]:
     rid = _canary(driver, "v2-hgb", run_id)
     driver.set_fault("v2-hgb", error_rate=0.3, note="SIMULATED partial outage: 30% candidate errors")
@@ -419,6 +463,7 @@ CHAOS_SCENARIOS: dict[str, Callable[[Any, str], dict[str, Any]]] = {
     "degraded_predictions": chaos_degraded_predictions,
     "latency_spike": chaos_latency_spike,
     "candidate_timeout": chaos_candidate_timeout,
+    "gateway_saturation": chaos_gateway_saturation,
     "partial_outage": chaos_partial_outage,
     "corrupted_artifact": chaos_corrupted_artifact,
     "repeat_rollback": chaos_repeat_rollback,

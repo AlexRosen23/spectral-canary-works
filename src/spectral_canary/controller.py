@@ -147,6 +147,7 @@ class Controller:
             "window_requests",
         )
         return {k: ev[k] for k in keys} | {
+            "saturation": ev.get("saturation"),
             "arms": ev["arms"],
             "labeled": ev["labeled_cumulative"],
             "drift_status": ev["drift"]["status"],
@@ -374,6 +375,11 @@ class Controller:
                     )
                 else:
                     self.pause(release_id, actor="controller", reason="; ".join(ev["breaches"]))
+            elif ev["verdict"] == "inconclusive_saturated":
+                # The gateway, not the candidate, is the likely cause: take the candidate out of traffic (fail-safe,
+                # and it sheds the paired-call load) without a rollback, a postmortem or a verdict on the model.
+                # An operator resumes the canary once capacity is back, or rolls it back.
+                self.pause(release_id, actor="controller", reason=ev["saturation"]["reason"])
             return ev
 
     # -- promotion ------------------------------------------------------------------------------------------

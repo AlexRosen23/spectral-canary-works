@@ -89,8 +89,8 @@ v3 was trained on a label snapshot taken before chargebacks matured on high-valu
 transactions. That segment holds about 3% of test frauds, so offline v3 sits inside every margin. Under the
 simulated surge the segment holds about a quarter of the frauds, and the canary rolled v3 back on paired
 evidence: 65 vs 83 of 112 labeled frauds, p = 0.0015. The project also records where the answer stops being
-yes. The guardrail can't yet tell a broken model from a saturated gateway (see
-[Limitations](#limitations-and-whats-next)).
+yes. When the gateway itself is saturated, timeouts are not evidence against the model, so the guardrail
+pauses instead of rolling back (see [Limitations](#limitations-and-whats-next)).
 
 The defect is constructed, and the data is synthetic. Synthetic data with a known label mechanism is what lets
 the simulation deliver delayed labels at all, which a static public benchmark can't do. The cost is external
@@ -112,7 +112,7 @@ rollbacks it drives are real executions of this code.
 | Atomic, idempotent, verified rollback + generated postmortem | Working | `tests/test_e2e.py` (in-process and over real HTTP); [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md) |
 | Promotion with separation of duties (creator can't approve) | Working | recorded demo (self-approval refused with 403); API tests |
 | Restart recovery, stuck-release revert, approve-vs-rollback race | Working | `make chaos-replay`: `restart_recovery`, `promotion_race` |
-| Seeded chaos suite: 10 failure scenarios with expected outcomes | Working | `make chaos-replay`: 10/10 (rerun 2026-11-09) |
+| Seeded chaos suite: 11 failure scenarios with expected outcomes | Working | `make chaos-replay`: 10/10 (rerun 2026-11-09); the 11th, `gateway_saturation`, added later the same day, passed with `latency_spike` and `candidate_timeout` |
 | Feature drift (PSI) and score drift (Jensen–Shannon) | Working (alert only, by design) | chaos `distribution_shift`; `/v1/drift` |
 | HTTP load test with SLOs | Working (one loaded laptop) | `make loadtest`; [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) (2026-11-09, commit `f015610`) |
 | Control-room UI (release track, traffic, quality, incident replay, drift, compare, postmortem, registry, reproducibility) | Working, local | renders only recorded API data; 5 web unit tests; `npm run build` |
@@ -129,7 +129,7 @@ rollbacks it drives are real executions of this code.
 | **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so CI gates on base vs head on one runner instead (`make llm-gate-relative`, see [Testing and CI](#testing-and-ci)) |
 | **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
 | LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
-| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Not built | open finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
+| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Working (fault-injected; load test not rerun) | chaos `gateway_saturation`; `test_timeouts_under_saturation_are_inconclusive_not_a_breach` and 3 related tests; closes finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
 | Multi-replica controller, Postgres registry, sequential testing (mSPRT), real identity provider | Not built | described as upgrades in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DECISIONS.md) |
 
 ## Quick start
@@ -158,7 +158,7 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | command | what it does |
 |---|---|
 | `make test` | all Python tests, including end-to-end failure→rollback in-process **and** over real HTTP |
-| `make chaos-replay` | 10 seeded failure scenarios with expected outcomes |
+| `make chaos-replay` | 11 seeded failure scenarios with expected outcomes |
 | `make verify` | re-hash every artifact, check manifest signatures and the audit hash chain |
 | `make loadtest` | real HTTP load test on a dedicated gateway (:5130); raw per-request results saved |
 | `make serve` / `make web` | gateway on :5120 / Vite dev UI on :5121 (for UI work) |
@@ -311,7 +311,7 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | A slow candidate could delay champion answers | one shared thread pool | separate bulkhead executors per arm |
 | Container crash-looped after a rebuild | a persisted registry referenced the previous image's artifact hashes | fail closed (readiness 503, gateway stays up) and key the container's registry to the artifact digest (`dc464b9`) |
 | **The c=32 load test rolled back a healthy model** | 146 candidate requests came from only 38 cards, and the flag-rate CI treated them as independent | all guardrail statistics count one observation per card; regression test (`f015610`) |
-| The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | **open**; a saturation-aware pause is proposed |
+| The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | when the champion's own model-call p95 is over `saturation_champion_p95_ms` (100 ms) in the same window and every failure over the error budget is a timeout, the window is `inconclusive_saturated` and the release **pauses**: the candidate leaves traffic, no postmortem blames it, and an operator resumes or rolls back. Real errors and quality breaches still roll back |
 | The UI requested a postmortem for a load-test run (404) | it took the newest run, not the newest demo | read the latest demo run (PR #2) |
 | LLM lane: a symmetric pass rate would have shipped both bad candidates | the regressed prompt and the model swap had equal or higher overall escalate accuracy than the champion (61.3% and 69.3% vs 62.0%), because under-escalating wins on the should-not-escalate cases | gate on recall for must-escalate alerts, overall and per segment; the promptfoo suite was rewritten the same way (PR #3) |
 | LLM lane: the first recorded run "failed" | a hypothesis about the 12-case smoke subset was written as an expected outcome | the smoke result became a recorded observation, not an expectation (`6d89c4d`); the rerun (offline suites reused, same bundle hashes) passed with the same four decisions |
@@ -365,6 +365,9 @@ numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain i
 schema break, distribution shift (drift alert, no traffic moved), degraded predictions, latency spike,
 candidate timeout (champion answers with `X-Fallback`), partial outage (fail closed 503), corrupted artifact
 (never becomes champion), repeat rollback (idempotent), restart recovery, and an approve-vs-rollback race.
+The 11th, gateway saturation (champion slowed to 60 ms and every candidate call past the timeout), pauses
+instead of rolling back, keeps every response at HTTP 200 and then resumes; its counterpart `candidate_timeout`
+(same timeouts, fast champion) still rolls back.
 
 ### Load test
 
@@ -436,9 +439,11 @@ Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) 
 
 - **Synthetic data, constructed defect.** The metrics describe this generator, not real fraud. Real fraud
   has adversaries and feedback loops that are not modeled here.
-- **Saturation is misattributed (open).** Under overload the candidate's timeouts trip the error budget and a
-  healthy model is rolled back. That fails safe, but the postmortem blames the model. **Next:** when the
-  champion lane is also over budget in the same window, record `inconclusive: gateway saturated` and pause.
+- **Saturation handling is a threshold, not a capacity model.** Timeouts are attributed to the gateway when the
+  champion's own p95 crosses a fixed 100 ms line in the same window. It is verified by fault injection, not by
+  rerunning the c=16/32 load test, and a candidate that is both broken and unlucky enough to be judged only
+  during an overload is paused rather than rolled back (still out of traffic). **Next:** rerun the load test,
+  and derive the line from the champion's measured baseline instead of a constant.
 - **Repeated testing without alpha-spending.** Guardrails re-test every window at p < 0.01. **Next:** a
   sequential test such as mSPRT.
 - **Single process.** Guardrail window counters live in the API process. Replicas would need them in the shared

@@ -247,3 +247,92 @@ def test_guardrail_counts_cards_not_requests() -> None:
     ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
     assert ev["arms"]["candidate"]["keys"] == 35
     assert not any("flags" in b for b in ev["breaches"]), ev["breaches"]
+
+
+def _window(champ_ms: float, cand_failures: list[str], n_cand: int = 150, n_champ: int = 1350) -> list[dict]:
+    """A canary window: `cand_failures` lists the candidate-call outcomes that failed ("timeout"/"error")."""
+    rows: list[dict] = []
+    for i in range(n_cand):
+        status = cand_failures[i] if i < len(cand_failures) else "ok"
+        rows.append(
+            {
+                "seq": i,
+                "request_id": f"c{i}",
+                "request_key": f"c{i}",
+                "arm": "candidate",
+                "status": "ok",
+                "shadow_status": status,
+                "decision": int(i % 20 == 0),
+                "latency_ms": champ_ms + 5,
+                "shadow_latency_ms": 8.0 if status == "ok" else None,
+                "champion_latency_ms": champ_ms,
+                "label": None,
+                "simulated": 1,
+            }
+        )
+    for i in range(n_champ):
+        rows.append(
+            {
+                "seq": n_cand + i,
+                "request_id": f"h{i}",
+                "request_key": f"h{i}",
+                "arm": "champion",
+                "status": "ok",
+                "shadow_status": None,
+                "decision": int(i % 20 == 0),
+                "latency_ms": champ_ms + 1,
+                "champion_latency_ms": champ_ms,
+                "label": None,
+                "simulated": 1,
+            }
+        )
+    return rows
+
+
+def test_timeouts_under_saturation_are_inconclusive_not_a_breach() -> None:
+    """Load test finding 5: the champion is slow too, so candidate timeouts are capacity, not the model."""
+    rows = _window(champ_ms=180.0, cand_failures=["timeout"] * 9)  # 6% > 2% budget, all timeouts
+    ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
+    assert ev["verdict"] == "inconclusive_saturated", ev
+    assert not ev["breaches"]
+    assert ev["saturation"]["saturated"] and "gateway saturated" in ev["saturation"]["reason"]
+
+
+def test_same_timeouts_with_a_fast_champion_still_breach() -> None:
+    rows = _window(champ_ms=4.0, cand_failures=["timeout"] * 9)
+    ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
+    assert ev["verdict"] == "breach" and any("error rate" in b for b in ev["breaches"])
+    assert not ev["saturation"]["saturated"]
+
+
+def test_real_errors_breach_even_under_saturation() -> None:
+    """Saturation explains timeouts, not exceptions: non-timeout errors over budget still roll back."""
+    rows = _window(champ_ms=180.0, cand_failures=["error"] * 5 + ["timeout"] * 4)
+    ev = evaluate_canary_window(rows, rows, CanaryPolicy(), 1)
+    assert ev["verdict"] == "breach", ev
+
+
+def test_saturated_window_pauses_the_release_without_rollback(scw_home, tmp_path) -> None:
+    from spectral_canary.fixtures import fixture_runtime
+    from spectral_canary.policy import ReleasePolicy
+    from spectral_canary.serving import Fault
+
+    pol = ReleasePolicy.load()
+    pol.canary = pol.canary.model_copy(
+        update={"window_requests": 300, "min_candidate_requests": 20, "saturation_champion_p95_ms": 40.0}
+    )
+    rt = fixture_runtime(tmp_path / "sat", home=scw_home, policy=pol)
+    try:
+        d = InProcessDriver(rt)
+        rid = _canary(d, "v2-hgb", "sat")
+        rt.faults.set("v1-logreg", Fault(latency_ms=60.0))
+        rt.faults.set("v2-hgb", Fault(latency_ms=650.0))
+        run_traffic(d, "sat-c", [Phase(BASE, 340, 4, "saturated")])
+        rel = rt.store.get_release(rid)
+        assert rel["state"] == "paused", rel["last_evaluation"]
+        assert rel["reason"].startswith("inconclusive: gateway saturated")
+        assert rt.store.deployment().champion_version == "v1-logreg"
+        kinds = [e["kind"] for e in rt.store.events(release_id=rid)]
+        assert "release.paused" in kinds and "rollback.executed" not in kinds and "postmortem.written" not in kinds
+    finally:
+        rt.close()

@@ -107,8 +107,9 @@ def _arm_stats(rows: list[dict[str, Any]], arm: str) -> dict[str, Any]:
     if arm == "candidate":
         served = [r for r in a if r.get("shadow_status") == "ok"]
         failed = [r for r in a if r.get("shadow_status") in ("error", "timeout", "unavailable")]
+        timeouts = sum(1 for r in failed if r.get("shadow_status") == "timeout")
     else:
-        served, failed = a, []
+        served, failed, timeouts = a, [], 0
     flags = int(sum(r["decision"] for r in served))
     per_key = one_per_key(served)
     key_flags = int(sum(r["decision"] for r in per_key))
@@ -117,7 +118,9 @@ def _arm_stats(rows: list[dict[str, Any]], arm: str) -> dict[str, Any]:
         "requests": len(a),
         "served_by_arm_model": len(served),
         "model_failures": len(failed),
+        "model_timeouts": timeouts,
         "error_rate": round(len(failed) / len(a), 4) if a else 0.0,
+        "non_timeout_error_rate": round((len(failed) - timeouts) / len(a), 4) if a else 0.0,
         "flagged": flags,
         "flag_rate": round(flags / len(served), 4) if served else None,
         "flag_rate_ci95": [round(v, 4) for v in wilson_interval(flags, len(served))],
@@ -193,11 +196,27 @@ def evaluate_canary_window(
     breaches: list[str] = []
     insufficient: list[str] = []
 
+    champ_p95 = champ["model_latency_ms"]["p95"]
+    saturated = champ_p95 is not None and champ_p95 > policy.saturation_champion_p95_ms
+    saturation: dict[str, Any] = {
+        "saturated": saturated,
+        "champion_model_p95_ms": champ_p95,
+        "threshold_ms": policy.saturation_champion_p95_ms,
+    }
+    capacity_breaches: list[str] = []  # breaches a saturated gateway would also produce
+
     if cand["requests"] < policy.min_candidate_requests:
         insufficient.append(f"candidate requests {cand['requests']} < {policy.min_candidate_requests}")
     else:
         if cand["error_rate"] > policy.max_error_rate:
-            breaches.append(f"candidate error rate {cand['error_rate']:.3f} > budget {policy.max_error_rate}")
+            msg = f"candidate error rate {cand['error_rate']:.3f} > budget {policy.max_error_rate}"
+            if saturated and cand["non_timeout_error_rate"] <= policy.max_error_rate:
+                # every failure over budget is a timeout, and the champion is slow too: capacity, not the model
+                capacity_breaches.append(
+                    f"{msg}, but {cand['model_timeouts']} of {cand['model_failures']} failures are timeouts"
+                )
+            else:
+                breaches.append(msg)
         p95 = cand["model_latency_ms"]["p95"]
         ref = champ["model_latency_ms"]["p95"]
         if (
@@ -240,16 +259,24 @@ def evaluate_canary_window(
                 f"McNemar p={pr['mcnemar_p_one_sided']:.2g})"
             )
 
-    verdict = (
-        "breach"
-        if breaches
-        else ("insufficient_evidence" if any(s.startswith("candidate requests") for s in insufficient) else "healthy")
-    )
+    if breaches:
+        verdict = "breach"
+    elif capacity_breaches:
+        verdict = "inconclusive_saturated"
+        saturation["reason"] = (
+            f"inconclusive: gateway saturated (champion model p95 {champ_p95:.1f} ms > "
+            f"{policy.saturation_champion_p95_ms:.0f} ms in the same window); " + "; ".join(capacity_breaches)
+        )
+    elif any(s.startswith("candidate requests") for s in insufficient):
+        verdict = "insufficient_evidence"
+    else:
+        verdict = "healthy"
     return {
         "window_index": window_index,
         "verdict": verdict,
         "breaches": breaches,
         "insufficient": insufficient,
+        "saturation": saturation,
         "labels_sufficient": labels_sufficient,
         "window_requests": len(window_rows),
         "arms": {"candidate": cand, "champion": champ},
