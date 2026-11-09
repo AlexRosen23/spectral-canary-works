@@ -56,7 +56,7 @@ jobs:
         with: {version: "0.12.23"}
       - run: uv sync --frozen
       - name: pip-audit (Python dependencies, from the lockfile)
-        run: uv export --frozen --no-hashes --format requirements-txt > /tmp/req.txt && uv run --frozen pip-audit -r /tmp/req.txt --strict
+        run: uv export --frozen --no-hashes --no-emit-project --format requirements-txt > /tmp/req.txt && uv run --frozen pip-audit -r /tmp/req.txt --strict
       - name: gitleaks (full history)
         run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --redact --no-banner
       - name: npm audit (web, production deps)

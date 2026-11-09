@@ -3,7 +3,7 @@
 # The builder retrains v1..v4 from configs and FAILS if the dataset or test-prediction hashes differ from
 # the committed manifests, so the image is a cross-platform reproducibility check, not a copied binary.
 
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.12-slim-trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv OMP_NUM_THREADS=1
 WORKDIR /app
@@ -17,7 +17,7 @@ RUN uv sync --frozen --no-dev
 ENV SCW_HOME=/app/var
 RUN /opt/venv/bin/scw train-fixtures
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.12-slim-trixie AS runtime
 RUN groupadd --system --gid 10001 scw && useradd --system --uid 10001 --gid scw --home /app scw
 ENV PATH=/opt/venv/bin:$PATH SCW_HOME=/app/var OMP_NUM_THREADS=1 PYTHONUNBUFFERED=1
 WORKDIR /app
