@@ -1,0 +1,15 @@
+# generated local state: datasets, artifacts, registries, event logs, run reports, secrets
+var/
+web/node_modules/
+web/dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl.bak
+infra/**/*.tfvars
+!infra/**/*.tfvars.example
+coverage/
