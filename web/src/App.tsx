@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, subscribeEvents } from "./api";
+import { API, api, subscribeEvents } from "./api";
 import type { Check, DriftReport, EventRow, ModelDetail, ModelSummary, Overview, Release, RunSummary, SeriesPoint } from "./api";
 import { BarChart, IntervalPlot, LineChart } from "./charts";
 import type { Marker } from "./charts";
@@ -59,7 +59,8 @@ export default function App() {
 
   const ov = d.overview;
   const relEvents = current ? d.events.filter((e) => e.release_id === current.release_id) : [];
-  const latestRun = d.runs[d.runs.length - 1];
+  // the served registry is the latest demo run (var/runs/latest); chaos and load-test runs have no postmortem
+  const latestRun = [...d.runs].reverse().find((r) => r.kind === "demo");
 
   return (
     <div className="app">
@@ -452,7 +453,7 @@ function Offline({ error, retry }: { error: string; retry: () => void }) {
   return (
     <div className="boot">
       <h1>Gateway unreachable</h1>
-      <p>The UI needs the API at <code>{(import.meta.env.VITE_API_URL as string) ?? "http://127.0.0.1:5120"}</code>. Start it with <code>make serve</code>.</p>
+      <p>The UI needs the API at <code>{API || window.location.origin}</code>. Start it with <code>make serve</code>.</p>
       <p className="dim small">{error}</p>
       <button onClick={retry}>Retry</button>
     </div>

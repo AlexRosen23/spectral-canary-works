@@ -1,7 +1,9 @@
 // Typed client for the gateway. Every number the UI renders comes from these endpoints, which read
 // recorded requests, events and manifests. Nothing here generates or interpolates data.
 
-export const API = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:5120";
+// Same origin by default: the gateway serves the built UI on its own port (5120), and the Vite dev server (5121)
+// proxies the API paths to it. VITE_API_URL overrides (the Docker web image sets it).
+export const API = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export type Deployment = {
   champion_version: string | null;
