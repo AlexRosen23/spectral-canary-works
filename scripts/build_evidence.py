@@ -202,22 +202,30 @@ add(
 )
 add(
     "Local Docker stack (gateway, web, simulated traffic, Prometheus, Grafana) up/down",
-    "healthy; teardown left 0 containers/volumes/networks",
+    "all services healthy; Prometheus scraped real gateway requests; Grafana dashboard rendered data; "
+    "`make down` left 0 containers/volumes/networks; infra/local OpenTofu apply -> ready -> destroy",
     None,
-    "make up && make down",
-    "docker-compose.yml",
-    head(),
-    "manual verification in the build session (2026-11-08)",
+    "make up && make down; cd infra/local && tofu apply && tofu destroy",
+    "docker-compose.yml, infra/local/main.tf",
+    "dc464b9",
+    "interactive verification in the build session (2026-11-08/09), working tree committed as dc464b9",
     "unverified",
     None,
-    "verified interactively, not by an automated recorded run; re-check with `make up`",
+    "verified by hand, not by an automated recorded run; re-check with `make up`",
 )
 
 out = PROJECT_ROOT / "resume_evidence" / "metrics.json"
 out.parent.mkdir(exist_ok=True)
 out.write_text(
     json.dumps(
-        {"generated_from": "scripts/build_evidence.py", "head_commit": head(), "items": items}, indent=2, default=str
+        {
+            "generated_from": "scripts/build_evidence.py",
+            "head_commit": head(),
+            "note": "artifact paths under var/ are local, gitignored run outputs; regenerate with the listed command",
+            "items": items,
+        },
+        indent=2,
+        default=str,
     )
     + "\n"
 )

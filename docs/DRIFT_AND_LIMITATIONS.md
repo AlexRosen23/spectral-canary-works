@@ -51,13 +51,18 @@ start a retraining or investigation, not to swap models.
 3. **Small samples.** A 10% canary sees about 6% fraud in baseline traffic, so labeled evidence accumulates
    slowly (25 labeled candidate-arm frauds after 6,000 routed requests in a measured run). That is why promotion needs labels, and why the
    label-free flag-rate guardrail exists.
-4. **Multiple testing.** Guardrails are re-evaluated every window without alpha-spending. The strict
+4. **Clustered samples.** Routing is sticky per card and one card sends many requests, so requests are
+   not independent. Treating them as independent made a CI far too narrow and rolled back a healthy
+   candidate during the c=32 load test (146 requests from 38 cards, which happened to contain no risky
+   transactions). The guardrails now test one observation per card. Cards within an arm can still be
+   correlated in time (bursty fraud rings), which this does not model.
+5. **Multiple testing.** Guardrails are re-evaluated every window without alpha-spending. The strict
    p < 0.01 per evaluation limits but does not eliminate inflated false-alarm risk over many windows. A
    sequential test (e.g. mSPRT) is the principled upgrade.
-5. **Latency figures come from a shared, heavily loaded laptop.** The load average was recorded during
+6. **Latency figures come from a shared, heavily loaded laptop.** The load average was recorded during
    runs and reached 50–95 because other workloads were running. They are useful for relative comparison
    (arms in the same window), not as capacity planning numbers.
-6. **Single-process controller.** Guardrail windows are counted in the API process. Several replicas would
+7. **Single-process controller.** Guardrail windows are counted in the API process. Several replicas would
    need the counter moved into the shared store (see `ARCHITECTURE_DECISIONS.md`).
-7. **Calibration under shift is not guaranteed.** Isotonic calibration is fit on training folds. Under the
+8. **Calibration under shift is not guaranteed.** Isotonic calibration is fit on training folds. Under the
    surge, base rates rise from 6.2% to 41.4% (measured), so the scores are no longer calibrated probabilities.

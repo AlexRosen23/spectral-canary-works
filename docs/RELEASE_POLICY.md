@@ -55,10 +55,13 @@ decision disagreement ≤ 15%.
   - *latency:* candidate **model-call** p95 above 50 ms **and** more than 6× the champion's model-call p95 in
     the same window. A whole-machine slowdown hits both arms and does not count.
   - *flag rate (label-free, early):* the candidate flags less than 65% of the champion arm's rate **and** the
-    95% Newcombe CI of the difference excludes 0.
+    95% Newcombe CI of the difference excludes 0. Counted **one observation per card** (routing key):
+    requests from one card are correlated, while cards are independent because the routing hash randomizes
+    them. A request-level CI caused a false rollback in the load test (see `LOAD_TEST_RESULTS.md`).
   - *recall (labeled, delayed):* the champion is also scored on every candidate-served request (a paired
     design). On candidate-served requests whose label has arrived and is positive, breach when the **exact
-    one-sided McNemar test** gives p < 0.01 and candidate recall < champion recall. This needs ≥ 20 labeled
+    one-sided McNemar test** gives p < 0.01 and candidate recall < champion recall (again one labeled fraud
+    per card). This needs ≥ 20 labeled
     positives per arm; below that the window says `insufficient` and **no accuracy claim is made**.
 - **On breach:** `on_breach = "rollback"` (default) or `"pause"`. Both are tested
   (`test_breach_policy_pause_vs_rollback`).

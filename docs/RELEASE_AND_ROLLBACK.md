@@ -49,4 +49,6 @@ Responses carry `X-Model-Version`, `X-Release-Arm` (`champion|candidate`), `X-De
 | champion failure | fail closed: HTTP 503 + `Retry-After`; never a fabricated score | chaos `partial_outage` |
 | pointer says canary but release isn't active | `recover()` reconciles the pointer to `mode=none` | `recovery.pointer_reconciled` |
 | champion artifact corrupted | `recover()` reverts to `last_known_good` if that verifies | `recovery.champion_reverted` |
+| gateway saturated during canary | **known gap:** candidate timeouts trip the error budget and roll back a healthy model (fail-safe but misattributed); fix = saturation-aware pause | `LOAD_TEST_RESULTS.md` finding 5 |
+| clustered traffic (repeat cards) | statistics use one observation per card | `test_guardrail_counts_cards_not_requests` |
 | guardrail on small samples | `insufficient_evidence`; no claim, no promotion | `test_guardrail_ignores_small_samples` |

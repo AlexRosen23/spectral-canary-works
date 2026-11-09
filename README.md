@@ -28,7 +28,7 @@ make web              # control room  http://127.0.0.1:5121
 
 | command | what it does |
 |---|---|
-| `make test` | 48 Python tests (plus 5 web unit tests via `npm test`): unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
+| `make test` | 49 Python tests (plus 5 web unit tests via `npm test`): unit, API contract, end-to-end failure→rollback (in-process **and** over real HTTP), replay determinism, chaos suite |
 | `make eval` | held-out metrics table for every version |
 | `make chaos-replay` | 10 seeded failure scenarios with expected outcomes |
 | `make loadtest` | real HTTP load test at fixed concurrency levels; raw per-request results saved |
@@ -52,13 +52,13 @@ Thresholds are chosen on the validation split (max F1); the test split is never 
 improvement over v1 is within the confidence intervals: it ships because it is **non-inferior** with better
 point estimates, not because it is significantly better.
 
-## The recorded story (`make demo`, run `demo-20261108-231714`, 199 s, real HTTP)
+## The recorded story (`make demo`, run `demo-20261109-001407`, commit `f015610`, 146 s, real HTTP)
 
 | release | outcome | evidence |
 |---|---|---|
 | `rel-0001` v1→v2 | **promoted** after 4 healthy canary windows + release-manager approval (self-approval refused, 403) | 50/50 verification predictions served by v2 |
 | `rel-0002` v4 | **blocked** by the offline gate | 7 failed checks, e.g. PR-AUC 0.127 below champion; recall on `merchant=electronics` 0.336 below |
-| `rel-0003` v2→v3 | **rolled back automatically** in canary window 4 | on 124 labeled frauds the candidate served it caught 72; the champion, scored on the same requests, would have caught 91 (exact McNemar p = 0.0013). Rollback verified 50/50; 200 post-rollback requests all served by v2; postmortem generated |
+| `rel-0003` v2→v3 | **rolled back automatically** in canary window 4 | on 112 labeled frauds (one per card) the candidate served it caught 65; the champion, scored on the same requests, would have caught 83 (exact McNemar p = 0.0015). Rollback verified 50/50; 200 post-rollback requests all served by v2; postmortem generated |
 
 Audit chain verified (34 events); registry hashes and signatures verified. v3 passed offline because its defect
 is confined to a segment holding about 3% of test positives; under the simulated surge that segment held

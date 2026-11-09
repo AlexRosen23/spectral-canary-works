@@ -19,7 +19,9 @@ Below 20 labeled positives per arm the system records `insufficient` and makes n
 Ten percent of 6%-fraud traffic produces few labeled frauds. Scoring the champion on the same
 candidate-served requests removes between-request variance, so the test has power at small n
 (`ARCHITECTURE_DECISIONS.md` ADR-5). The cost is one extra model call on 10% of traffic. The arm-vs-arm
-Newcombe CI is still reported.
+Newcombe CI is still reported. All of these tests use one observation per card: my own load test produced
+a false rollback when 146 requests from 38 repeat cards were treated as independent, and that bug is now a
+regression test (`test_guardrail_counts_cards_not_requests`).
 
 **4. Walk me through the rollback.**
 One SQLite transaction does a compare-and-swap on `deployment.generation`, sets the release state, and

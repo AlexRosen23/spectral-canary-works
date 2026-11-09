@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import contextlib
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -247,8 +248,7 @@ def run_loadtests(paths: Any, args: argparse.Namespace) -> int:
         "slo_compliance": slo,
         "machine": machine_info(),
         "commit": git_commit(),
-        "command": "scw loadtest "
-        + " ".join(f"--{k.replace('_', '-')} {v}" for k, v in vars(args).items() if k not in ("fn",) and v is not None),
+        "command": "scw " + " ".join(sys.argv[1:]),
         "traffic": "SIMULATED baseline payloads (seeded); real HTTP, real model inference, real SQLite telemetry",
     }
     (root / "report.json").write_text(json.dumps(report, indent=2, default=str))
