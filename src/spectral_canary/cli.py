@@ -264,7 +264,11 @@ def cmd_demo(args: argparse.Namespace) -> int:
 def cmd_chaos(args: argparse.Namespace) -> int:
     from .chaos import run_chaos
 
-    report = run_chaos(state_paths().ensure(), only=args.only)
+    try:
+        report = run_chaos(state_paths().ensure(), only=args.only)
+    except ValueError as exc:
+        print(f"[chaos] {exc}", file=sys.stderr)
+        return 2
     for s in report["scenarios"]:
         print(f"[chaos] {'PASS' if s['passed'] else 'FAIL'}  {s['scenario']:<22} {s.get('expected', '')}")
     print(

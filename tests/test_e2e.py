@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from spectral_canary.chaos import run_chaos
+from spectral_canary.chaos import run_chaos, scenario_names
 from spectral_canary.drivers import HttpDriver, InProcessDriver
 from spectral_canary.fixtures import fixture_runtime
 from spectral_canary.paths import state_paths
@@ -74,7 +74,7 @@ def test_rollback_over_real_http(scw_home, tmp_path, monkeypatch) -> None:
     rt.close()
     monkeypatch.setenv("SCW_HOME", str(scw_home))
     tokens = ensure_operators_file(state_paths(scw_home).operators)
-    port = 5139
+    port = _free_port()  # a fixed port made the test fail whenever an orphaned server still held it
     proc = start_server(run / "registry.sqlite", port, {"SCW_HOME": str(scw_home)}, log_path=run / "server.log")
     try:
         d = HttpDriver(f"http://127.0.0.1:{port}", tokens)
@@ -87,6 +87,14 @@ def test_rollback_over_real_http(scw_home, tmp_path, monkeypatch) -> None:
         stop_server(proc)
 
 
+def _free_port() -> int:
+    import socket
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
 def _row(home):
     from spectral_canary.data import load_split_csv
     from spectral_canary.schema import decode_row
@@ -95,7 +103,16 @@ def _row(home):
     return decode_row(X[0])
 
 
-def test_chaos_suite_passes(scw_home) -> None:
-    report = run_chaos(state_paths(scw_home))
+@pytest.mark.parametrize("scenario", scenario_names())
+def test_chaos_scenario_passes(scw_home, scenario) -> None:
+    """One test per chaos scenario (the same code and pass criteria as `scw chaos-replay`), so pytest-xdist can
+    spread the suite over the runner's cores."""
+    report = run_chaos(state_paths(scw_home), only=[scenario])
+    assert [s["scenario"] for s in report["scenarios"]] == [scenario]
     failed = [s for s in report["scenarios"] if not s["passed"]]
     assert not failed, json.dumps(failed, indent=1, default=str)
+
+
+def test_chaos_rejects_unknown_scenario(scw_home) -> None:
+    with pytest.raises(ValueError, match="unknown chaos scenario"):
+        run_chaos(state_paths(scw_home), only=["schema_brake"])
