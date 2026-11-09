@@ -1,7 +1,8 @@
-# CI for Spectral Canary Works. DEFINED BUT NOT ENABLED: GitHub Actions is disabled on this private repo
-# until the owner turns it on (it would use the shared 2,000 min/month). Every job here also runs locally:
-# `make ci` (lint, types, fixtures, contract, tests incl. e2e failure->rollback, chaos replay, web build),
-# `make iac-validate`, `make docker-build`. No secrets are required by any job.
+# CI for Spectral Canary Works. ENABLED: the owner turned GitHub Actions on for this private repo on 2026-11-09
+# (it draws on the shared 2,000 Actions min/month for private repos, so it runs on pull requests and manual
+# dispatch only, never on every push). Every job here also runs locally: `make ci` (lint, types, fixtures,
+# contract, tests incl. e2e failure->rollback, chaos replay, web build), `make iac-validate`, `make docker-build`.
+# No secrets are required by any job.
 name: ci
 
 on:
