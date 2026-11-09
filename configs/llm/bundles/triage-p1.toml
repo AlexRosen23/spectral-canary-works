@@ -1,0 +1,15 @@
+# Releasable unit = prompt version + model (+ weights digest pinned at registration) + params. Immutable once registered.
+version = "triage-p1"
+prompt_version = "p1"
+prompt_file = "prompts/triage-p1.md"
+model = "llama3.2:3b"
+user_template = "Fraud alert:\n{summary}"
+owner = "fraud-ops-ml"
+change_summary = "Champion at bootstrap: the written triage policy (ordered reason codes + three escalation rules), sampled at temperature 0.2."
+deliberately_regressed = false
+
+[params]
+temperature = 0.2
+top_p = 0.9
+num_predict = 200
+num_ctx = 2048

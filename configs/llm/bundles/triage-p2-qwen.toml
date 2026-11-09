@@ -1,0 +1,14 @@
+version = "triage-p2-qwen"
+prompt_version = "p2"
+prompt_file = "prompts/triage-p2.md"
+model = "qwen2.5-coder:3b"
+user_template = "Fraud alert:\n{summary}"
+owner = "fraud-ops-ml"
+change_summary = "Model swap: the p2 prompt and params unchanged, served by qwen2.5-coder:3b instead of llama3.2:3b."
+deliberately_regressed = false
+
+[params]
+temperature = 0.0
+top_p = 0.9
+num_predict = 200
+num_ctx = 2048
