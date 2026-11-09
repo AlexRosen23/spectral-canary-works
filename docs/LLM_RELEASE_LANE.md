@@ -128,6 +128,10 @@ overall escalate accuracy was 62.0% for the champion p2, 61.3% for the regressed
 a model that under-escalates gains on the 84 should-not-escalate cases what it loses on the 66 must-escalate ones.
 A symmetric pass rate would have passed both bad candidates. (Numbers recomputed from the saved per-try files.)
 
+Recorded (`docs/evidence/llm/promptfoo/`, commit 3b5f0dc, Ollama 0.40.13): the champion prompt passes 139 of 150
+cases (92.7%, exit 0; its 11 failures are exactly its 11 missed escalations, matching the Python gate's 83.3% recall
+on 66 must-escalate cases); the regressed p3 prompt passes 111 (74.0%) and `promptfoo eval` exits 100.
+
 The CI job is defined in `.github/workflows/ci.yml` (`llm-gate`, path-filtered to prompt/bundle/policy/lane
 changes, Ollama as a service container); GitHub Actions stays disabled, so it was run locally and its output saved.
 

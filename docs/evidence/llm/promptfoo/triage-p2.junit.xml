@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites errors="0" failures="11" name="promptfoo" skipped="0" tests="150" time="140.863">
+  <testsuite errors="0" failures="11" name="[triage-p2@llama3.2:3b] prompt 1" skipped="0" tests="150" time="140.863" timestamp="2026-11-09T19:33:31.660Z">
+    <testcase name="test 1: GT-0001 BENIGN_ANOMALY" time="0.598" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 2: GT-0002 BENIGN_ANOMALY" time="0.563" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 3: GT-0003 CARD_TESTING escalate [card_testing_burst]" time="1.13" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 4: GT-0004 CARD_TESTING escalate [card_testing_burst]" time="0.981" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 5: GT-0005 CARD_TESTING escalate [card_testing_burst]" time="0.833" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 6: GT-0006 CARD_TESTING escalate [card_testing_burst]" time="0.762" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 7: GT-0007 CARD_TESTING escalate [card_testing_burst]" time="0.669" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 8: GT-0008 BENIGN_ANOMALY" time="0.794" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 9: GT-0009 CARD_TESTING escalate [card_testing_burst]" time="0.721" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 10: GT-0010 BENIGN_ANOMALY" time="0.887" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 11: GT-0011 CARD_TESTING escalate [card_testing_burst]" time="0.782" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 12: GT-0012 CARD_TESTING" time="0.95" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 13: GT-0013 CARD_TESTING escalate [card_testing_burst]" time="0.653" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 14: GT-0014 CARD_TESTING escalate [card_testing_burst]" time="0.819" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 15: GT-0015 CARD_TESTING" time="0.814" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 16: GT-0016 CARD_TESTING" time="0.757" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 17: GT-0017 CARD_TESTING escalate [card_testing_burst]" time="0.777" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 18: GT-0018 CARD_TESTING escalate [high_value_cnp,card_testing_burst]" time="0.856" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 19: GT-0019 STOLEN_CARD_CNP" time="0.697" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 20: GT-0020 CARD_TESTING escalate [card_testing_burst]" time="0.784" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 21: GT-0021 CARD_TESTING escalate [card_testing_burst]" time="0.933" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 22: GT-0022 CARD_TESTING" time="0.751" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 23: GT-0023 CARD_TESTING" time="0.817" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 24: GT-0024 CARD_TESTING escalate [card_testing_burst]" time="0.759" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 25: GT-0025 CARD_TESTING" time="0.746" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 26: GT-0026 CARD_TESTING escalate [card_testing_burst]" time="0.945" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 27: GT-0027 CARD_TESTING escalate [card_testing_burst]" time="1.127" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 28: GT-0028 CARD_TESTING escalate [card_testing_burst]" time="0.937" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 29: GT-0029 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.079" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 30: GT-0030 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.859" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 31: GT-0031 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.852" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 32: GT-0032 STOLEN_CARD_CNP" time="0.918" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 33: GT-0033 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.939" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 34: GT-0034 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.76" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 35: GT-0035 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.93" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 36: GT-0036 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.027" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 37: GT-0037 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.909" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 38: GT-0038 STOLEN_CARD_CNP" time="1.094" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 39: GT-0039 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.865" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 40: GT-0040 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.834" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 41: GT-0041 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.734" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 42: GT-0042 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.673" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 43: GT-0043 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="1" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 44: GT-0044 STOLEN_CARD_CNP" time="0.764" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 45: GT-0045 STOLEN_CARD_CNP" time="0.761" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 46: GT-0046 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.07" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 47: GT-0047 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.98" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 48: GT-0048 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 49: GT-0049 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.021" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 50: GT-0050 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.874" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 51: GT-0051 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.429" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 52: GT-0052 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.912" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 53: GT-0053 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.337" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 54: GT-0054 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.947" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 55: GT-0055 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.326" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 56: GT-0056 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.905" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 57: GT-0057 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="0.963" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 58: GT-0058 BENIGN_ANOMALY" time="1.375" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 59: GT-0059 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.881" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 60: GT-0060 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.446" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.5
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 61: GT-0061 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.94" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 62: GT-0062 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.029" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 63: GT-0063 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="1.244" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 64: GT-0064 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.136" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 65: GT-0065 BENIGN_ANOMALY escalate [high_value_cnp]" time="1.158" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.75
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 66: GT-0066 ACCOUNT_TAKEOVER escalate [account_takeover]" time="0.9" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 67: GT-0067 ACCOUNT_TAKEOVER escalate [account_takeover]" time="1.014" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 68: GT-0068 ACCOUNT_TAKEOVER escalate [high_value_cnp,account_takeover]" time="1.115" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 69: GT-0069 STOLEN_CARD_CNP" time="0.952" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 70: GT-0070 STOLEN_CARD_CNP" time="0.999" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 71: GT-0071 STOLEN_CARD_CNP" time="0.929" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 72: GT-0072 BENIGN_ANOMALY" time="0.977" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 73: GT-0073 BENIGN_ANOMALY" time="1.045" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 74: GT-0074 STOLEN_CARD_CNP" time="0.986" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 75: GT-0075 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.973" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 76: GT-0076 BENIGN_ANOMALY" time="0.925" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 77: GT-0077 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.909" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 78: GT-0078 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.764" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 79: GT-0079 STOLEN_CARD_CNP" time="0.922" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 80: GT-0080 BENIGN_ANOMALY escalate [high_value_cnp]" time="0.797" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.75
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 81: GT-0081 BENIGN_ANOMALY" time="1.141" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 82: GT-0082 STOLEN_CARD_CNP" time="0.909" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 83: GT-0083 STOLEN_CARD_CNP" time="0.873" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 84: GT-0084 STOLEN_CARD_CNP" time="0.948" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 85: GT-0085 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.8" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 86: GT-0086 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.928" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 87: GT-0087 STOLEN_CARD_CNP" time="0.879" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 88: GT-0088 STOLEN_CARD_CNP" time="0.931" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 89: GT-0089 BENIGN_ANOMALY" time="0.92" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 90: GT-0090 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.841" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 91: GT-0091 STOLEN_CARD_CNP" time="0.785" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 92: GT-0092 STOLEN_CARD_CNP" time="0.802" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 93: GT-0093 BENIGN_ANOMALY" time="1.033" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 94: GT-0094 STOLEN_CARD_CNP" time="1.034" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 95: GT-0095 BENIGN_ANOMALY" time="0.996" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 96: GT-0096 STOLEN_CARD_CNP" time="0.893" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 97: GT-0097 STOLEN_CARD_CNP" time="0.78" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 98: GT-0098 STOLEN_CARD_CNP" time="0.833" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 99: GT-0099 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.997" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 100: GT-0100 STOLEN_CARD_CNP" time="1.001" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 101: GT-0101 STOLEN_CARD_CNP escalate [high_value_cnp]" time="0.853" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 102: GT-0102 STOLEN_CARD_CNP" time="1.361" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 103: GT-0103 STOLEN_CARD_CNP" time="0.921" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 104: GT-0104 STOLEN_CARD_CNP" time="0.996" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 105: GT-0105 FRIENDLY_FRAUD" time="0.832" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 106: GT-0106 FRIENDLY_FRAUD" time="1.16" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 107: GT-0107 FRIENDLY_FRAUD" time="0.882" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 108: GT-0108 BENIGN_ANOMALY" time="0.944" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 109: GT-0109 BENIGN_ANOMALY" time="1.03" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 110: GT-0110 FRIENDLY_FRAUD" time="1.115" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 111: GT-0111 FRIENDLY_FRAUD" time="0.924" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 112: GT-0112 FRIENDLY_FRAUD" time="0.935" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 113: GT-0113 FRIENDLY_FRAUD" time="1.049" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 114: GT-0114 FRIENDLY_FRAUD" time="0.971" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 115: GT-0115 FRIENDLY_FRAUD" time="1.13" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 116: GT-0116 FRIENDLY_FRAUD" time="1.018" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 117: GT-0117 FRIENDLY_FRAUD" time="0.822" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 118: GT-0118 FRIENDLY_FRAUD" time="0.836" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 119: GT-0119 FRIENDLY_FRAUD" time="0.902" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 120: GT-0120 FRIENDLY_FRAUD" time="0.857" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 121: GT-0121 FRIENDLY_FRAUD" time="0.906" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 122: GT-0122 FRIENDLY_FRAUD" time="0.878" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 123: GT-0123 FRIENDLY_FRAUD" time="0.966" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 124: GT-0124 FRIENDLY_FRAUD" time="0.785" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 125: GT-0125 FRIENDLY_FRAUD escalate [high_value_cnp]" time="1.001" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 126: GT-0126 FRIENDLY_FRAUD" time="0.959" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 127: GT-0127 BENIGN_ANOMALY escalate [high_value_cnp]" time="0.776" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 128: GT-0128 BENIGN_ANOMALY escalate [high_value_cnp]" time="0.901" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.75
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 129: GT-0129 BENIGN_ANOMALY" time="0.95" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 130: GT-0130 BENIGN_ANOMALY" time="1.018" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 131: GT-0131 BENIGN_ANOMALY" time="0.714" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 132: GT-0132 BENIGN_ANOMALY" time="0.994" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 133: GT-0133 BENIGN_ANOMALY escalate [high_value_cnp]" time="0.946" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.75
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 134: GT-0134 BENIGN_ANOMALY" time="0.823" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 135: GT-0135 BENIGN_ANOMALY" time="1.04" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 136: GT-0136 BENIGN_ANOMALY" time="1.012" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 137: GT-0137 BENIGN_ANOMALY" time="1.026" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 138: GT-0138 BENIGN_ANOMALY" time="1.101" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 139: GT-0139 BENIGN_ANOMALY" time="0.82" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 140: GT-0140 BENIGN_ANOMALY" time="1.078" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 141: GT-0141 BENIGN_ANOMALY" time="1.027" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 142: GT-0142 BENIGN_ANOMALY" time="1.193" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 143: GT-0143 BENIGN_ANOMALY" time="1.039" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 144: GT-0144 BENIGN_ANOMALY" time="1.078" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 145: GT-0145 BENIGN_ANOMALY" time="0.922" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 146: GT-0146 BENIGN_ANOMALY escalate [high_value_cnp]" time="1.195" classname="[triage-p2@llama3.2:3b] prompt 1">
+      <failure message="Assertion failed" type="assertion">Score: 0.75
+Reason: Assertion failed
+Failed assertions:
+- javascript</failure>
+    </testcase>
+    <testcase name="test 147: GT-0147 BENIGN_ANOMALY" time="0.891" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 148: GT-0148 BENIGN_ANOMALY" time="1.081" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 149: GT-0149 BENIGN_ANOMALY" time="0.939" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+    <testcase name="test 150: GT-0150 BENIGN_ANOMALY" time="0.922" classname="[triage-p2@llama3.2:3b] prompt 1"></testcase>
+  </testsuite>
+</testsuites>

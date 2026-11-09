@@ -1,0 +1,379 @@
+cd evals/triage && npm ci --no-audit --no-fund --silent && mkdir -p results && \
+	PROMPTFOO_PASS_RATE_THRESHOLD=90 PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 \
+	npx promptfoo eval -c promptfooconfig.yaml --no-cache --no-progress-bar \
+	  -o results/promptfoo-results.json -o results/promptfoo-results.junit.xml
+Cache is disabled.
+Starting evaluation eval-CF9-2026-11-09T19:33:31
+Running 150 test cases (up to 1 at a time)...
+
+┌────────────────────────┬────────────────────────┬────────────────────────┬────────────────────────┬────────────────────────┐
+│ summary                │ expected_reason        │ expected_escalate      │ case_id                │ [triage-p2@llama3.2:3… │
+│                        │                        │                        │                        │ triage-p2              │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0001: $42.69  │ BENIGN_ANOMALY         │ false                  │ GT-0001                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Ship-to address        │                        │                        │                        │   "rationale": "8      │
+│ unchanged. Password    │                        │                        │                        │ declined attempts in   │
+│ unchanged for 30+      │                        │                        │                        │ the past hour and 2    │
+│ days. 8 declined       │                        │                        │                        │ authorizations under   │
+│ attempts in the past   │                        │                        │                        │ $2 in the past hour"   │
+│ hour. Device in use    │                        │                        │                        │ }                      │
+│ for 456 days. 2        │                        │                        │                        │                        │
+│ authorizations under   │                        │                        │                        │                        │
+│ $2 in the past hour... │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0002: $552.15 │ BENIGN_ANOMALY         │ false                  │ GT-0002                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": false,   │
+│ merchant. 2            │                        │                        │                        │   "rationale": "2      │
+│ authorizations under   │                        │                        │                        │ authorizations under   │
+│ $2 in the past hour. 1 │                        │                        │                        │ $2 in the past hour    │
+│ declined attempt in    │                        │                        │                        │ and 1 declined attempt │
+│ the past hour. Ship-to │                        │                        │                        │ in the past hour"      │
+│ address unchanged.     │                        │                        │                        │ }                      │
+│ Password unchanged for │                        │                        │                        │                        │
+│ 30+ days. No prior     │                        │                        │                        │                        │
+│ chargebacks...         │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0003: $28.96  │ CARD_TESTING           │ true                   │ GT-0003                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": true,    │
+│ merchant. 6 declined   │                        │                        │                        │   "rationale": "6      │
+│ attempts in the past   │                        │                        │                        │ declined attempts in   │
+│ hour. Known device,    │                        │                        │                        │ the past hour and 7    │
+│ first seen 189 days    │                        │                        │                        │ authorizations under   │
+│ before the purchase.   │                        │                        │                        │ $2 in the past hour"   │
+│ No prior chargebacks.  │                        │                        │                        │ }                      │
+│ 7 authorizations under │                        │                        │                        │                        │
+│ $2 in the past hour.   │                        │                        │                        │                        │
+│ Pas...                 │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0004: $9.10   │ CARD_TESTING           │ true                   │ GT-0004                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ gift cards merchant. 8 │                        │                        │                        │   "escalate": true,    │
+│ declined attempts in   │                        │                        │                        │   "rationale": "6      │
+│ the past hour. Ship-to │                        │                        │                        │ authorizations under   │
+│ address unchanged. 6   │                        │                        │                        │ $2 in the past hour    │
+│ authorizations under   │                        │                        │                        │ and 8 declined         │
+│ $2 in the past hour.   │                        │                        │                        │ attempts in the past   │
+│ Cardholder has filed 1 │                        │                        │                        │ hour"                  │
+│ chargeback in the past │                        │                        │                        │ }                      │
+│ year. Know...          │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0005: $31.11  │ CARD_TESTING           │ true                   │ GT-0005                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ gift cards merchant.   │                        │                        │                        │   "escalate": true,    │
+│ New device, first seen │                        │                        │                        │   "rationale": "6      │
+│ 5.8 hours before the   │                        │                        │                        │ authorizations under   │
+│ purchase. No prior     │                        │                        │                        │ $2 in the past hour    │
+│ chargebacks. 5         │                        │                        │                        │ and 5 declined         │
+│ declined attempts in   │                        │                        │                        │ attempts in the past   │
+│ the past hour. 6       │                        │                        │                        │ hour"                  │
+│ authorizations under   │                        │                        │                        │ }                      │
+│ $2 in the past hour.   │                        │                        │                        │                        │
+│ No pas...              │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0006: $179.81 │ CARD_TESTING           │ true                   │ GT-0006                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Device first seen 17.5 │                        │                        │                        │   "rationale": "5      │
+│ hours before the       │                        │                        │                        │ declined attempts in   │
+│ purchase. 5 declined   │                        │                        │                        │ the past hour and 5    │
+│ attempts in the past   │                        │                        │                        │ authorizations under   │
+│ hour. Ship-to address  │                        │                        │                        │ $2 in the past hour"   │
+│ unchanged. Password    │                        │                        │                        │ }                      │
+│ unchanged for 30+      │                        │                        │                        │                        │
+│ days. No prior         │                        │                        │                        │                        │
+│ chargebac...           │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0007: $46.13  │ CARD_TESTING           │ true                   │ GT-0007                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Ship-to address        │                        │                        │                        │   "rationale": "9      │
+│ unchanged. 9           │                        │                        │                        │ authorizations under   │
+│ authorizations under   │                        │                        │                        │ $2 in the past hour    │
+│ $2 in the past hour.   │                        │                        │                        │ and 6 declined         │
+│ Password unchanged for │                        │                        │                        │ attempts in the past   │
+│ 30+ days. No prior     │                        │                        │                        │ hour"                  │
+│ chargebacks. 6         │                        │                        │                        │ }                      │
+│ declined attempts in   │                        │                        │                        │                        │
+│ the past hour. Devi... │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0008:         │ BENIGN_ANOMALY         │ false                  │ GT-0008                │ [PASS] {               │
+│ $1,559.60 in-store     │                        │                        │                        │   "reason_code":       │
+│ purchase, card present │                        │                        │                        │ "CARD_TESTING",        │
+│ at a digital goods     │                        │                        │                        │   "escalate": true,    │
+│ merchant. New device,  │                        │                        │                        │   "rationale": "7      │
+│ first seen 10.5 hours  │                        │                        │                        │ declined attempts in   │
+│ before the purchase.   │                        │                        │                        │ the past hour and 2    │
+│ No prior chargebacks.  │                        │                        │                        │ authorizations under   │
+│ No password reset in   │                        │                        │                        │ $2 in the past hour"   │
+│ the last 30 days. 7    │                        │                        │                        │ }                      │
+│ declined attempts in   │                        │                        │                        │                        │
+│ the past hour. 2       │                        │                        │                        │                        │
+│ autho...               │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0009: $18.11  │ CARD_TESTING           │ true                   │ GT-0009                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ fuel merchant.         │                        │                        │                        │   "escalate": true,    │
+│ Password unchanged for │                        │                        │                        │   "rationale": "5      │
+│ 30+ days. 5            │                        │                        │                        │ authorizations under   │
+│ authorizations under   │                        │                        │                        │ $2 in the past hour    │
+│ $2 in the past hour.   │                        │                        │                        │ and 8 declined         │
+│ Device first seen 11.3 │                        │                        │                        │ attempts in the past   │
+│ hours before the       │                        │                        │                        │ hour"                  │
+│ purchase. Cardholder   │                        │                        │                        │ }                      │
+│ has filed 1 chargeback │                        │                        │                        │                        │
+│ in the pa...           │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0010: $31.06  │ BENIGN_ANOMALY         │ false                  │ GT-0010                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": false,   │
+│ Cardholder has filed 1 │                        │                        │                        │   "rationale": "2      │
+│ chargeback in the past │                        │                        │                        │ authorizations under   │
+│ year. Ship-to address  │                        │                        │                        │ $2 in the past hour    │
+│ unchanged. 1 declined  │                        │                        │                        │ and 1 declined attempt │
+│ attempt in the past    │                        │                        │                        │ in the past hour"      │
+│ hour. Device in use    │                        │                        │                        │ }                      │
+│ for 883 days. 2        │                        │                        │                        │                        │
+│ authorizations under   │                        │                        │                        │                        │
+│ $...                   │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0011: $42.98  │ CARD_TESTING           │ true                   │ GT-0011                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Device first seen 18.8 │                        │                        │                        │   "rationale": "8      │
+│ hours before the       │                        │                        │                        │ authorizations under   │
+│ purchase. Ship-to      │                        │                        │                        │ $2 in the past hour    │
+│ address unchanged. No  │                        │                        │                        │ and 8 declined         │
+│ prior chargebacks.     │                        │                        │                        │ attempts in the past   │
+│ Password unchanged for │                        │                        │                        │ hour"                  │
+│ 30+ days. 8            │                        │                        │                        │ }                      │
+│ authorizations under   │                        │                        │                        │                        │
+│ $2 in the pas...       │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0012: $55.91  │ CARD_TESTING           │ false                  │ GT-0012                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "STOLEN_CARD_CNP",     │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Ship-to address        │                        │                        │                        │   "rationale":         │
+│ unchanged. New device, │                        │                        │                        │ "Card-not-present      │
+│ first seen 7.9 hours   │                        │                        │                        │ purchase with new      │
+│ before the purchase. 0 │                        │                        │                        │ device and 6           │
+│ declined attempts in   │                        │                        │                        │ authorizations under   │
+│ the past hour. No      │                        │                        │                        │ $2 in the past hour."  │
+│ password reset in the  │                        │                        │                        │ }                      │
+│ last 30 days. No prior │                        │                        │                        │                        │
+│ ...                    │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0013: $24.83  │ CARD_TESTING           │ true                   │ GT-0013                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant. No   │                        │                        │                        │   "escalate": true,    │
+│ password reset in the  │                        │                        │                        │   "rationale": "3      │
+│ last 30 days. 3        │                        │                        │                        │ declined attempts in   │
+│ declined attempts in   │                        │                        │                        │ the past hour and 9    │
+│ the past hour. Ship-to │                        │                        │                        │ authorizations under   │
+│ address unchanged.     │                        │                        │                        │ $2 in the past hour"   │
+│ Cardholder has filed 1 │                        │                        │                        │ }                      │
+│ chargeback in the past │                        │                        │                        │                        │
+│ year. New device, ...  │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0014: $49.13  │ CARD_TESTING           │ true                   │ GT-0014                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": true,    │
+│ merchant. Password     │                        │                        │                        │   "rationale": "11     │
+│ unchanged for 30+      │                        │                        │                        │ authorizations under   │
+│ days. Device in use    │                        │                        │                        │ $2 in the past hour    │
+│ for 48 hours. 11       │                        │                        │                        │ and 3 declined         │
+│ authorizations under   │                        │                        │                        │ attempts in the past   │
+│ $2 in the past hour. 3 │                        │                        │                        │ hour"                  │
+│ declined attempts in   │                        │                        │                        │ }                      │
+│ the past hour. Ship-to │                        │                        │                        │                        │
+│ address u...           │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0015: $461.54 │ CARD_TESTING           │ false                  │ GT-0015                │ [PASS] {               │
+│ in-store purchase,     │                        │                        │                        │   "reason_code":       │
+│ card present at a      │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": false,   │
+│ merchant. 4            │                        │                        │                        │   "rationale": "4      │
+│ authorizations under   │                        │                        │                        │ authorizations under   │
+│ $2 in the past hour. 1 │                        │                        │                        │ $2 in the past hour,   │
+│ declined attempt in    │                        │                        │                        │ known device, and no   │
+│ the past hour. Known   │                        │                        │                        │ prior chargebacks"     │
+│ device, first seen     │                        │                        │                        │ }                      │
+│ 27.9 hours before the  │                        │                        │                        │                        │
+│ purchase. Password     │                        │                        │                        │                        │
+│ unchanged for 30...    │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0016: $654.46 │ CARD_TESTING           │ false                  │ GT-0016                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Device in use for 31.3 │                        │                        │                        │   "rationale": "11     │
+│ hours. No prior        │                        │                        │                        │ authorizations under   │
+│ chargebacks. Password  │                        │                        │                        │ $2 in the past hour    │
+│ unchanged for 30+      │                        │                        │                        │ and 2 declined         │
+│ days. Ship-to address  │                        │                        │                        │ attempts in the past   │
+│ unchanged. 2 declined  │                        │                        │                        │ hour"                  │
+│ attempts in the past   │                        │                        │                        │ }                      │
+│ hour. 11               │                        │                        │                        │                        │
+│ authorizations...      │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0017: $16.72  │ CARD_TESTING           │ true                   │ GT-0017                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": true,    │
+│ merchant. 4            │                        │                        │                        │   "rationale": "4      │
+│ authorizations under   │                        │                        │                        │ authorizations under   │
+│ $2 in the past hour.   │                        │                        │                        │ $2 in the past hour    │
+│ Ship-to address        │                        │                        │                        │ and 8 declined         │
+│ unchanged. No password │                        │                        │                        │ attempts in the past   │
+│ reset in the last 30   │                        │                        │                        │ hour"                  │
+│ days. No prior         │                        │                        │                        │ }                      │
+│ chargebacks. 8         │                        │                        │                        │                        │
+│ declined attempts in   │                        │                        │                        │                        │
+│ the pas...             │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0018:         │ CARD_TESTING           │ true                   │ GT-0018                │ [PASS] {               │
+│ $1,080.09              │                        │                        │                        │   "reason_code":       │
+│ card-not-present       │                        │                        │                        │ "CARD_TESTING",        │
+│ (online) purchase at a │                        │                        │                        │   "escalate": true,    │
+│ grocery merchant. No   │                        │                        │                        │   "rationale": "8      │
+│ prior chargebacks. 8   │                        │                        │                        │ declined attempts in   │
+│ declined attempts in   │                        │                        │                        │ the past hour and 7    │
+│ the past hour. New     │                        │                        │                        │ authorizations under   │
+│ device, first seen 3.8 │                        │                        │                        │ $2 in the past hour"   │
+│ hours before the       │                        │                        │                        │ }                      │
+│ purchase. Ship-to      │                        │                        │                        │                        │
+│ address unchanged. No  │                        │                        │                        │                        │
+│ password reset in      │                        │                        │                        │                        │
+│ th...                  │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0019: $46.50  │ STOLEN_CARD_CNP        │ false                  │ GT-0019                │ [PASS] {               │
+│ online purchase, card  │                        │                        │                        │   "reason_code":       │
+│ not present at a       │                        │                        │                        │ "CARD_TESTING",        │
+│ digital goods          │                        │                        │                        │   "escalate": true,    │
+│ merchant. Ship-to      │                        │                        │                        │   "rationale": "2      │
+│ address unchanged.     │                        │                        │                        │ authorizations under   │
+│ Cardholder has filed 1 │                        │                        │                        │ $2 in the past hour    │
+│ chargeback in the past │                        │                        │                        │ and 7 declined         │
+│ year. New device,      │                        │                        │                        │ attempts in the past   │
+│ first seen 2.6 hours   │                        │                        │                        │ hour"                  │
+│ before the purchase. 2 │                        │                        │                        │ }                      │
+│ authorizations under   │                        │                        │                        │                        │
+│ $2 in ...              │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0020: $13.38  │ CARD_TESTING           │ true                   │ GT-0020                │ [PASS] {               │
+│ card-present purchase  │                        │                        │                        │   "reason_code":       │
+│ at a terminal at a     │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant.      │                        │                        │                        │   "escalate": true,    │
+│ Device first seen 2.7  │                        │                        │                        │   "rationale": "5      │
+│ hours before the       │                        │                        │                        │ authorizations under   │
+│ purchase. 5            │                        │                        │                        │ $2 in the past hour    │
+│ authorizations under   │                        │                        │                        │ and 4 declined         │
+│ $2 in the past hour.   │                        │                        │                        │ attempts in the past   │
+│ Password unchanged for │                        │                        │                        │ hour"                  │
+│ 30+ days. No prior     │                        │                        │                        │ }                      │
+│ chargebacks. 4         │                        │                        │                        │                        │
+│ declined attempt...    │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0021: $4.46   │ CARD_TESTING           │ true                   │ GT-0021                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ gift cards merchant.   │                        │                        │                        │   "escalate": true,    │
+│ 10 authorizations      │                        │                        │                        │   "rationale": "10     │
+│ under $2 in the past   │                        │                        │                        │ authorizations under   │
+│ hour. Password         │                        │                        │                        │ $2 in the past hour    │
+│ unchanged for 30+      │                        │                        │                        │ and 4 declined         │
+│ days. Ship-to address  │                        │                        │                        │ attempts in the past   │
+│ unchanged. Cardholder  │                        │                        │                        │ hour"                  │
+│ has filed 1 chargeback │                        │                        │                        │ }                      │
+│ in the past year. New  │                        │                        │                        │                        │
+│ devi...                │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0022: $217.91 │ CARD_TESTING           │ false                  │ GT-0022                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ gift cards merchant.   │                        │                        │                        │   "escalate": false,   │
+│ Device first seen 14.1 │                        │                        │                        │   "rationale": "11     │
+│ hours before the       │                        │                        │                        │ authorizations under   │
+│ purchase. Password     │                        │                        │                        │ $2 in the past hour,   │
+│ unchanged for 30+      │                        │                        │                        │ no declined attempts"  │
+│ days. No prior         │                        │                        │                        │ }                      │
+│ chargebacks. 11        │                        │                        │                        │                        │
+│ authorizations under   │                        │                        │                        │                        │
+│ $2 in the past hour. 0 │                        │                        │                        │                        │
+│ declined at...         │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0023: $1.34   │ CARD_TESTING           │ false                  │ GT-0023                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ restaurants merchant.  │                        │                        │                        │   "escalate": true,    │
+│ 10 authorizations      │                        │                        │                        │   "rationale": "10     │
+│ under $2 in the past   │                        │                        │                        │ authorizations under   │
+│ hour. Known device,    │                        │                        │                        │ $2 in the past hour    │
+│ first seen 47.5 hours  │                        │                        │                        │ and 2 declined         │
+│ before the purchase.   │                        │                        │                        │ attempts in the past   │
+│ Ship-to address        │                        │                        │                        │ hour"                  │
+│ unchanged. 2 declined  │                        │                        │                        │ }                      │
+│ attempts in the past   │                        │                        │                        │                        │
+│ hou...                 │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0024: $23.17  │ CARD_TESTING           │ true                   │ GT-0024                │ [PASS] {               │
+│ card-not-present       │                        │                        │                        │   "reason_code":       │
+│ (online) purchase at a │                        │                        │                        │ "CARD_TESTING",        │
+│ apparel merchant. 4    │                        │                        │                        │   "escalate": true,    │
+│ declined attempts in   │                        │                        │                        │   "rationale": "8      │
+│ the past hour. Ship-to │                        │                        │                        │ authorizations under   │
+│ address unchanged. No  │                        │                        │                        │ $2 in the past hour    │
+│ prior chargebacks. 8   │                        │                        │                        │ and 4 declined         │
+│ authorizations under   │                        │                        │                        │ attempts in the past   │
+│ $2 in the past hour.   │                        │                        │                        │ hour"                  │
+│ Password unchanged for │                        │                        │                        │ }                      │
+│ 30+ days. New...       │                        │                        │                        │                        │
+├────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┼────────────────────────┤
+│ Alert GT-0025:         │ CARD_TESTING           │ false                  │ GT-0025                │ [PASS] {               │
+│ $1,564.57 in-store     │                        │                        │                        │   "reason_code":       │
+│ purchase, card present │                        │                        │                        │ "CARD_TESTING",        │
+│ at a apparel merchant. │                        │                        │                        │   "escalate": true,    │
+│ 0 declined attempts in │                        │                        │                        │   "rationale": "12     │
+│ the past hour.         │                        │                        │                        │ authorizations under   │
+│ Password unchanged for │                        │                        │                        │ $2 in the past hour    │
+│ 30+ days. No prior     │                        │                        │                        │ and recent card        │
+│ chargebacks. Device    │                        │                        │                        │ activity"              │
+│ first seen 8.2 hours   │                        │                        │                        │ }                      │
+│ before the purchase.   │                        │                        │                        │                        │
+│ 12 authorizations      │                        │                        │                        │                        │
+│ under $...             │                        │                        │                        │                        │
+└────────────────────────┴────────────────────────┴────────────────────────┴────────────────────────┴────────────────────────┘
+... 125 more rows not shown ...
+
+✓ Eval complete (ID: eval-CF9-2026-11-09T19:33:31)
+
+» View results: promptfoo view
+» Share with your team: https://promptfoo.app
+» Feedback: https://promptfoo.dev/feedback
+
+Total Tokens: 67,895
+  Provider: 67,895 (60,876 prompt, 7,019 completion)
+
+Results:
+  ✓ 139 passed (92.67%)
+  ✗ 11 failed (7.33%)
+  0 errors (0%)
+Duration: 2m 24s (concurrency: 1)
+
+Writing output to results/promptfoo-results.json, results/promptfoo-results.junit.xml

@@ -39,6 +39,9 @@ unit is a hashed, signed **prompt bundle** (prompt + model + pinned weights dige
 | `triage-p2-qwen` (model swap to qwen2.5-coder:3b) | **blocked offline** | 4.6% cheaper and 13% lower offline p95, but escalation recall 42.4% vs 83.3% |
 | `triage-p2-ctx4k` (`num_ctx` 2048 -> 4096 only) | **rolled back automatically** | identical answers offline; in canary the shared Ollama server reloaded the model on every switch: candidate p95 2,830 ms vs 1,342 ms for the champion arm (2.11x, SLO 1.5x); 20/20 verification calls answered by p2; postmortem generated |
 
+The promptfoo CI gate (`make llm-gate`, threshold 90%) passes the champion prompt at 92.7% and fails the regressed
+prompt at 74.0% (exit 100): [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/).
+
 Caveats: a 3B local model gets only 37% of whole replies right on this policy (reported, not hidden); labels are
 rule-derived, graders are code, alert traffic is simulated, latency is from a shared laptop. The first, fully live
 run (`llm-demo-20261109-111237`, 110 min) reached the same four decisions.
