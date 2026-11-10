@@ -45,7 +45,7 @@ graders. Tables are generated from the run files: [`docs/evidence/llm/`](evidenc
 | Canary with online grading + SLOs | 10% sticky canary, paired champion call, McNemar on must-escalate alerts, p95 latency and token-cost SLOs, input-drift trigger | p2: 70 shadow requests with 0 candidate failures; 2 healthy canary windows (400 routed requests, 54 answered by p2); paired must-escalate alerts 12/12 for both -> promoted after release-manager approval (self-approval refused, 403) | `llm/monitor.py` |
 | Automatic rollback + postmortem | same `Controller.rollback` (CAS + audit event in one transaction), 20 real verification calls, generated postmortem | ctx4k config change (same answers offline): window 1 candidate p95 2,830 ms vs champion arm 1,342 ms (2.11x; first run 5,105 vs 2,319 ms, 2.20x) -> **rolled back**; 20/20 verification calls answered by p2, 30 post-rollback requests all served by p2, event chain verified (30 events) | `postmortem-llm-rel-0004.md` |
 | Observability | OTel GenAI metrics (`gen_ai.client.token.usage`, `gen_ai.client.operation.duration`, Development status) on `/metrics`, two Grafana panels | series present on the recorded run's `/metrics` | `metrics-genai.prom` |
-| CI gate for prompts | promptfoo 0.125.1 (pinned), local Ollama, pass-rate threshold 90; CI job on manual dispatch (threshold calibrated on Metal; the CPU runner scored the champion 84.7%, see LLM_RELEASE_LANE.md) | champion p2: 139/150 cases pass (92.7%, exit 0; the 11 failures are its 11 missed escalations); regressed p3: 111/150 (74.0%) -> promptfoo exit 100 |  `docs/evidence/llm/promptfoo/` |
+| CI gate for prompts | promptfoo 0.125.1 (pinned), local Ollama, pass-rate threshold 90 locally (calibrated on Metal; the CPU runner scored the champion 84.7%); in CI a relative gate: PR base vs head on one runner, fails on a drop over 2.2 points (see LLM_RELEASE_LANE.md) | champion p2: 139/150 cases pass (92.7%, exit 0; the 11 failures are its 11 missed escalations); regressed p3: 111/150 (74.0%) -> promptfoo exit 100 |  `docs/evidence/llm/promptfoo/` |
 | Governance / human oversight | separation of duties for promotion, hash-chained audit log, OWASP LLM Top 10 mapping | event chains verified on both runs | `docs/THREAT_MODEL.md` |
 
 Two findings worth reading in full ([`LLM_RELEASE_LANE.md`](LLM_RELEASE_LANE.md)):
@@ -68,7 +68,7 @@ Two findings worth reading in full ([`LLM_RELEASE_LANE.md`](LLM_RELEASE_LANE.md)
 | Observability / tracing (4/9) | metrics yes (OTel GenAI semconv); **no** traces/spans | `llm/otel.py`, Grafana |
 | Cost + latency (3/9) | yes: token-cost and p95 SLOs in canary, offline cost/latency on the model swap | `llm/monitor.py` |
 | Security, governance, human oversight (5/9) | approvals with separation of duties, signed immutable bundles, audit chain, OWASP LLM mapping; **no** prompt-injection test set | `docs/THREAT_MODEL.md` |
-| Cloud + CI/CD (5/9) | GitHub Actions enabled 2026-11-09 (5 PR jobs green, LLM gate on manual dispatch); Docker/IaC from the ML lane; **not deployed** | `.github/workflows/ci.yml` |
+| Cloud + CI/CD (5/9) | GitHub Actions enabled 2026-11-09 (5 PR jobs green, relative LLM gate on LLM-lane PRs); Docker/IaC from the ML lane; **not deployed** | `.github/workflows/ci.yml` |
 | Agents / tool design (6/9) | **no** (this repo has no tool-using agent) | — |
 | RAG (4/9) | **no** | — |
 | MCP (1/9) | **no** | — |
@@ -93,7 +93,6 @@ Two findings worth reading in full ([`LLM_RELEASE_LANE.md`](LLM_RELEASE_LANE.md)
 
 ## Owner decisions needed
 
-- Whether to enable the `llm-gate` CI job (needs Actions on this repo and pinning the Ollama image by digest).
 - Whether a hosted model (e.g. a Claude model via API) should be added as a second candidate; that needs an API key
   and spend approval. Nothing in this branch calls a paid API.
 - Whether to have a person label a sample of alerts (and rationales) so an LLM judge can be calibrated.

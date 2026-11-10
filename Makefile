@@ -12,10 +12,16 @@ LLM_DEMO_PORT ?= 5141
 # test split (docs/evidence/llm/). Allowed recall = 0.8333 - 0.05 (the gate margin) -> 100 * (1 - (1 - 0.7833) * 66/150)
 # = 90.5 -> 90.
 LLM_GATE_THRESHOLD ?= 90
+# That absolute threshold only holds on the backend it was calibrated on (Apple Metal). On a GitHub CPU runner the same
+# weights, Ollama, prompt and seed score the champion 84.7%. `make llm-gate-relative` (the CI pull-request gate) instead
+# runs the suite for a base checkout and for this one on the same machine, and fails when this one drops more than
+# 100 * 0.05 * 66/150 = 2.2 pass-rate points below the base: the same 0.05 recall margin, read from the base's
+# configs/llm/release_policy.toml ([offline_gate] max_escalation_recall_drop), with the case counts from the base run.
+LLM_GATE_BASE ?= origin/main
 
 .PHONY: start setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
         loadtest web-build up down clean-state iac-validate contract-check docker-build \
-        llm-gold llm-eval llm-demo llm-gate workflow-lint
+        llm-gold llm-eval llm-demo llm-gate llm-gate-relative workflow-lint
 
 setup:            ## install Python + web deps, create local secrets (gitignored)
 	$(UV) sync --frozen
@@ -85,6 +91,9 @@ llm-gate:         ## promptfoo regression suite (pinned 0.125.1) vs local Ollama
 	PROMPTFOO_PASS_RATE_THRESHOLD=$(LLM_GATE_THRESHOLD) PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 \
 	npx promptfoo eval -c promptfooconfig.yaml --no-cache --no-progress-bar \
 	  -o results/promptfoo-results.json -o results/promptfoo-results.junit.xml
+
+llm-gate-relative: ## base-vs-head promptfoo gate on one machine (LLM_GATE_BASE=<ref>, default origin/main; ~2x llm-gate)
+	LLM_GATE_BASE="$(LLM_GATE_BASE)" PYTHON="$${PYTHON:-$(RUN) python}" ./scripts/llm_gate_relative.sh
 
 ci: lint typecheck train-fixtures contract-check llm-gold test chaos-replay  ## what .github/workflows/ci.yml runs
 	@if [ -d web/node_modules ]; then cd web && npm run typecheck && npm run build; fi

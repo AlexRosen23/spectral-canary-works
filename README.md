@@ -120,13 +120,13 @@ rollbacks it drives are real executions of this code.
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
 | OpenTofu `infra/local` (Docker provider) | Working, local | applied and destroyed against local Docker during the build; `fmt` + `validate` in CI |
 | OpenTofu `infra/aws` (ECR + one `t4g.micro`, SSM, IMDSv2, Budgets) | Partial: validated, **not provisioned** | `fmt` + `validate` only; `scripts/aws_deploy.sh` refuses to run without `SCW_CONFIRM_BILLABLE=yes`. $0 spent. Two documented, accepted Trivy findings (public IP, HTTPS egress) |
-| GitHub Actions CI (5 PR jobs; LLM gate on manual dispatch) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
+| GitHub Actions CI (5 PR jobs + a relative LLM gate on LLM-lane PRs) | Working | enabled 2026-11-09; first real runs are on this README's PR ([Testing and CI](#testing-and-ci)) |
 | Read-only contract for dashboards (`/health`, `/capabilities`, `/runs`) | Working | `make start` checked on 2026-11-09 (`/health` ok, `/runs` lists the runs); the owner's Constellation reads it |
 | **LLM lane:** prompt bundles as immutable, hashed, signed releasable units with the Ollama weights digest pinned | Working | `tests/test_llm_lane.py` (tampered prompt and changed weights digest both blocked) |
 | **LLM lane:** offline eval gate (150 gold cases × 3 seeded tries, code graders, pass^3, per-segment escalation recall, non-inferiority) | Working (rule-derived labels) | recorded run [`llm-demo-20261109-130256`](docs/evidence/llm/llm-demo-20261109-130256/RESULTS.md): p3 and the qwen swap blocked; gold set checked by `make llm-gold` (rerun 2026-11-09) |
 | **LLM lane:** shadow + 10% canary with online code grading, paired McNemar, p95 latency and token-cost SLOs, input-drift trigger | Working (simulated alerts, real local model calls) | same recorded run: p2 promoted after 2 healthy windows; ctx4k rolled back on the latency SLO |
 | **LLM lane:** automatic rollback (same controller), 20 verification calls, generated postmortem | Working | [`postmortem-llm-rel-0004.md`](docs/evidence/llm/llm-demo-20261109-130256/postmortem-llm-rel-0004.md); `test_llm_release_story_in_process` (scripted test double) |
-| **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so on GitHub the job is manual-only (see [Testing and CI](#testing-and-ci)) |
+| **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so CI gates on base vs head on one runner instead (`make llm-gate-relative`, see [Testing and CI](#testing-and-ci)) |
 | **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
 | LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
 | Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Not built | open finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
@@ -167,7 +167,8 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | `make iac-validate` | OpenTofu `fmt` + `validate` for `infra/local` and `infra/aws` (no plan, no apply) |
 | `make workflow-lint` | actionlint on `.github/workflows` (Docker) |
 | `make llm-gold` | check the committed triage gold set against its seeded generator (seconds) |
-| `make llm-gate` | promptfoo regression suite (pinned 0.125.1) against local Ollama; fails under the 90% pass-rate threshold |
+| `make llm-gate` | promptfoo regression suite (pinned 0.125.1) against local Ollama; fails under the 90% pass-rate threshold (calibrated on Apple Metal) |
+| `make llm-gate-relative` | the same suite for a base ref (`LLM_GATE_BASE`, default `origin/main`) and this checkout on one machine; fails when this one is more than 2.2 points below the base. CI's PR gate |
 | `make llm-eval B=<bundle>` | offline suite for one prompt bundle (150 cases × 3 tries, real local model calls) |
 | `make llm-demo` | the LLM lane story over real HTTP on :5141 with real local model calls (about 2 h on the build laptop when every suite runs live) |
 
@@ -318,7 +319,7 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | CI had never actually run | the workflow wasn't valid YAML (an unquoted `:` in a step name), so GitHub couldn't read its triggers and refused `workflow_dispatch` | quoted in PR #3; PR #4 adds `make workflow-lint` (actionlint) so it can't recur |
 | First CI run: pip-audit failed | `uv export` listed the project itself, which isn't on PyPI | `--no-emit-project` (PR #4) |
 | First CI run: Trivy failed the image | 2 CRITICAL CVEs in Debian 12 with no fixed package (libsqlite3 CVE-2025-7458, zlib CVE-2023-45853) | base image moved to `python:3.12-slim-trixie` (Debian 13) (PR #4) |
-| LLM gate on GitHub: the champion prompt failed its own threshold | the 90% threshold was calibrated on Apple Metal; on the runner's CPU backend the same weights, Ollama, prompt and seed scored 84.7% | evidence saved, job made manual-dispatch only; a relative gate (base vs PR on the same runner) is the proposed fix (PR #4) |
+| LLM gate on GitHub: the champion prompt failed its own threshold | the 90% threshold was calibrated on Apple Metal; on the runner's CPU backend the same weights, Ollama, prompt and seed scored 84.7% | evidence saved; CI now runs a relative gate (base vs PR head on the same runner, fails on a drop over 2.2 points) |
 | Second CI run: Trivy's filesystem scan failed on misconfigurations | the web image relied on its base image's non-root user without saying so; the AWS path has a public-IP subnet and HTTPS egress to any address | `USER 101:101` in `web/Dockerfile`; the two AWS findings are documented accepted risks with a costed alternative (~$43/month), suppressed per rule inline ([`docs/SECURITY_AND_SECRETS.md`](docs/SECURITY_AND_SECRETS.md)) (PR #4) |
 
 Designing the degraded candidate also took iteration. It had to pass the offline gate *honestly* and fail
@@ -414,7 +415,9 @@ digests), the same Ollama version (0.40.13), prompt, parameters and seed, the ch
 All 23 failures were missed escalations: recall 65.2% vs 83.3%. The runner uses Ollama's CPU backend and the Mac
 uses Metal, and greedy decoding isn't bit-identical across compute backends. A threshold calibrated on one
 backend therefore doesn't transfer to another. Evidence: [`triage-p2.github-cpu.*`](docs/evidence/llm/promptfoo/)
-(run [42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563)).
+(run [42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563)). So the CI gate is
+relative: it scores the PR base and the PR head on the same runner and fails when the head drops more than 2.2
+pass-rate points (the policy's 0.05 escalation-recall margin over 66 of 150 must-escalate cases) below the base.
 
 Caveats: a 3B local model gets only 37% of whole replies right on this policy (reported, not hidden). Labels are
 rule-derived, graders are code, alert traffic is simulated, and latency comes from a shared laptop.
@@ -447,9 +450,10 @@ Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) 
   and no human calibration, so the gold set measures whether a prompt follows a written policy, not fraud
   judgement. 150 cases × 3 tries can't resolve differences of a few points, which is why the margins are wide.
   **Next:** human-labeled cases and a calibrated judge for the rationale.
-- **LLM lane: the promptfoo gate is backend-specific.** Its absolute threshold holds on the machine where it was
-  calibrated, not on a CPU CI runner (84.7% vs 92.7% for the same champion). **Next:** score the base and PR
-  prompts on the same runner and gate on the difference, which would make it a valid PR check on GitHub.
+- **LLM lane: the promptfoo scores are backend-specific.** The absolute 90% threshold of `make llm-gate` holds on
+  the machine where it was calibrated, not on a CPU CI runner (84.7% vs 92.7% for the same champion). CI therefore
+  gates on the difference between the PR base and head on one runner. That catches a regression the PR introduces,
+  not a model that is weak on every backend, and a 2.2-point margin on 150 cases can't see smaller drops.
 - **LLM lane: small canary windows.** About 20 candidate calls per 200 routed requests, so per-window p95 is
   noisy. The same-window ratio absorbs whole-machine slowdowns, not variance.
 
@@ -467,7 +471,7 @@ The full list is in [`docs/DRIFT_AND_LIMITATIONS.md`](docs/DRIFT_AND_LIMITATIONS
 | `manifests/` | committed dataset and model manifests (hashes, metrics). The artifacts themselves are regenerated, not committed. |
 | `contracts/` | `model_artifact_v1` JSON Schema + example, a framework-neutral artifact contract |
 | `tests/` | unit, API, store/routing, release controller, and end-to-end failure→rollback tests |
-| `scripts/` | `start.sh`, contract check, evidence builder, IaC validation, AWS deploy/teardown (guarded) |
+| `scripts/` | `start.sh`, contract check, evidence builder, relative LLM gate (`llm_gate_relative.sh`, `llm_gate_compare.py`), IaC validation, AWS deploy/teardown (guarded) |
 | `deploy/` | Prometheus scrape config, Grafana datasource and dashboard |
 | `infra/local`, `infra/aws` | OpenTofu: local Docker (applied + destroyed in testing) / AWS (validated, not provisioned) |
 | `docs/` | policy, rollback, drift, data card, architecture, ADRs, threat model, runbooks, load test, costs, postmortem, case study, LLM lane |
@@ -481,7 +485,8 @@ The full list is in [`docs/DRIFT_AND_LIMITATIONS.md`](docs/DRIFT_AND_LIMITATIONS
 make test        # all Python tests (pytest), incl. e2e failure->rollback in-process and over real HTTP
 make test-fast   # unit tests only (skips the e2e marker)
 make llm-gold    # gold set matches its generator
-make llm-gate    # promptfoo gate against local Ollama (needs llama3.2:3b)
+make llm-gate    # promptfoo gate against local Ollama (needs llama3.2:3b), absolute 90% threshold (Metal-calibrated)
+make llm-gate-relative LLM_GATE_BASE=origin/main   # base vs this checkout on one machine: the CI pull-request gate
 cd web && npm test
 make ci          # everything CI's python + web jobs run
 ```
@@ -495,7 +500,7 @@ end-to-end tests, not the unit tests: replay determinism (186 s), the chaos suit
 release story (76 s) each drive thousands of simulated requests.
 
 **GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on
-pull requests and manual dispatch, plus an LLM gate on manual dispatch only:
+pull requests and manual dispatch, plus a relative LLM gate on pull requests that touch the LLM lane:
 
 | job | what it checks |
 |---|---|
@@ -504,7 +509,7 @@ pull requests and manual dispatch, plus an LLM gate on manual dispatch only:
 | `web` | TypeScript typecheck, unit tests, production build |
 | `image` | Docker build (which retrains and re-verifies hashes on Linux), container smoke test, Trivy image scan |
 | `iac` | OpenTofu `fmt` + `validate` (no plan, no apply, no credentials) |
-| `llm-gate` | **manual dispatch only** (`gh workflow run ci -f llm_gate_threshold=<0-100>`): promptfoo against an Ollama service container pinned by digest. It isn't a PR check because its 90% threshold was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). The gate is `make llm-gate` on the build machine. |
+| `llm-gate` | **relative** promptfoo gate, on PRs that touch `configs/llm/`, `evals/triage/`, the LLM code, `scripts/llm_gate_*`, the Makefile or the workflow (a `changes` job with `dorny/paths-filter` decides, so the Ollama service container, pinned by digest, starts only then), and on manual dispatch. It checks out the PR base next to the head, runs the 150-case suite for both on the same runner, and fails if the head's pass rate is more than 2.2 points below the base's (the policy's 0.05 escalation-recall margin × 66/150 must-escalate cases). The log shows both pass rates. Recorded on PR #6: base = head on each runner (127/150 on one CPU, 136/150 on another), PASS; the regressed `triage-p3` as head on a third runner: 127 → 104/150, FAIL. 26–41 min. An absolute threshold can't work here: the 90% one was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). |
 
 The workflow file had never been valid YAML, so before 2026-11-09 it had never run (see
 [How it was built](#how-it-was-built)). Its first real runs, on

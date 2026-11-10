@@ -18,6 +18,7 @@ make ci              # lint, mypy, fixtures, contract, all tests (incl. e2e roll
 make iac-validate    # OpenTofu fmt/validate (no plan/apply)
 make docker-build    # image build (retrains fixtures and verifies hashes inside the build)
 make llm-gate        # promptfoo regression suite for the triage prompt (needs local Ollama + llama3.2:3b)
+make llm-gate-relative LLM_GATE_BASE=origin/main  # same suite for the base and this checkout; fails on a >2.2-point drop
 make llm-demo        # LLM lane story over real HTTP on :5141 (long; real local model calls)
 ```
 
@@ -32,7 +33,8 @@ paste whole logs into PRs.
   commit the new `manifests/` files in the same PR. The diff in the hashes *is* the review artifact.
 - **The policy:** edit `configs/release_policy.toml`. Every release event records the policy SHA-256.
 - **A prompt or LLM bundle:** add `configs/llm/prompts/<name>.md` and a new `configs/llm/bundles/<version>.toml`
-  (bundles are immutable once registered). Run `make llm-gate` and, for a candidate, `make llm-eval B=<version>`.
+  (bundles are immutable once registered). Run `make llm-gate-relative` (or `make llm-gate` on the Metal machine
+  its threshold was calibrated on) and, for a candidate, `make llm-eval B=<version>`.
   The LLM lane's thresholds live in `configs/llm/release_policy.toml`.
 - **The triage gold set:** change `llm/alerts.py`, run `scw llm-gold --write`, and commit the regenerated
   `evals/triage/triage_gold_v1.jsonl` (bump the file name if labels change).
@@ -61,9 +63,13 @@ outgoing commits.
 ## CI and deployment status
 
 - GitHub Actions is **enabled** (owner decision, 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on every
-  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). The `llm-gate` job runs on manual
-  dispatch only: its threshold is calibrated on Apple Metal, not on the runner's CPU backend
-  (`docs/LLM_RELEASE_LANE.md`). Run `make llm-gate` locally for prompt changes. `make ci` runs the python and web jobs locally;
+  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). The `llm-gate` job runs on pull
+  requests that touch the LLM lane (prompts, bundles, policy, gold set, LLM code, `scripts/llm_gate_*`, the Makefile
+  or the workflow) and on manual dispatch. It is **relative**: it scores the PR base and the PR head with the same
+  promptfoo suite on the same runner and fails when the head is more than 2.2 pass-rate points below the base (the
+  policy's 0.05 escalation-recall margin over 66 of 150 must-escalate cases). No absolute threshold: the Metal-calibrated
+  90% doesn't hold on the runner's CPU backend (`docs/LLM_RELEASE_LANE.md`). The log and step summary show both pass
+  rates. Locally, `make llm-gate-relative` does the same. `make ci` runs the python and web jobs locally;
   `make workflow-lint` checks the workflow file itself before you push.
 - Nothing is deployed. The AWS path in `infra/aws` is implemented and validated but not provisioned (see
   `docs/DEPLOYMENT_RUNBOOK.md`).

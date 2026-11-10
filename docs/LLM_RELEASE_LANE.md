@@ -137,10 +137,61 @@ container pinned by digest) ran once on a pull request, on a GitHub-hosted runne
 digests, same Ollama version, prompt, params and seed, but Ollama's CPU backend (AMD EPYC, AVX-512) instead of
 Metal: the champion prompt scored **127/150 (84.7%)**, and all 23 failures were missed escalations (recall 65.2% vs
 83.3%). Greedy decoding is not bit-identical across compute backends, so the 90% threshold, calibrated on Metal,
-fails the accepted champion on CPU. The job is therefore manual-dispatch only (`-f llm_gate_threshold=<0-100>`),
-and `make llm-gate` on the build machine stays the gate. The fix that would make it a valid PR check is a relative
-gate: score the base and the PR prompt on the same runner and fail on the difference. Evidence:
-`docs/evidence/llm/promptfoo/triage-p2.github-cpu.*` (run 42692611563).
+fails the accepted champion on CPU. Evidence: `docs/evidence/llm/promptfoo/triage-p2.github-cpu.*` (run
+42692611563). So CI does not use an absolute threshold; it uses the relative gate below.
+
+### Relative gate on pull requests (`make llm-gate-relative`, CI job `llm-gate`)
+
+Greedy decoding differs between compute backends, but two runs on one backend are comparable. The CI job checks
+out the PR base (`github.base_ref`) next to the PR head, pulls `llama3.2:3b` once into the Ollama service container,
+and runs the same promptfoo suite twice, back to back on one runner: the base's `evals/triage/` (with the base's
+prompts and bundle config), then the head's. `scripts/llm_gate_compare.py` then fails the job when
+
+    head pass rate < base pass rate - margin
+    margin = 100 * max_escalation_recall_drop * must_escalate_cases / cases = 100 * 0.05 * 66/150 = 2.2 points
+
+This is the same derivation as the Makefile's absolute threshold: a case fails on an invalid reply or a missed
+must-escalate alert, so the policy's 0.05 escalation-recall non-inferiority margin, over 66 must-escalate cases out
+of 150, is 3.3 cases or 2.2 pass-rate points. In practice the head may lose at most 3 cases relative to the base, and
+a 4th fails the gate. The margin is read from the **base's** `configs/llm/release_policy.toml`, and the counts from the
+base run, so a PR can't loosen its own gate by editing the policy. The gate also fails closed: on any provider error
+in either run, on an empty run, or when base and head cover a different number of cases (for example a changed gold
+split). On a PR that changes the gold set, the comparison is between two different test sets; review that diff on its
+own.
+
+Each run, the job log and the step summary show both pass rates, the margin, the difference and the failed cases by
+metric; the `promptfoo-results` artifact keeps `relative/base.json`, `relative/head.json` and `relative/verdict.json`.
+It runs on pull requests that touch `configs/llm/`, `evals/triage/`, `src/spectral_canary/llm/`,
+`scripts/llm_gate_*`, the `Makefile` or the workflow (a `changes` job with `dorny/paths-filter` decides, so the
+Ollama container starts only then), and on manual dispatch (`gh workflow run ci --ref <branch> -f
+llm_gate_base_ref=main`; add `-f llm_gate_head_prompt=triage-p3` to score the regressed prompt as the head and watch
+the gate fail). Two suite runs take 26–41 minutes on a CPU runner, depending on which CPU it gets.
+
+**Recorded on GitHub (2026-11-09, PR #6).** Base `docs/readme-writeup` (9bda89b, champion `triage-p2`) in every run:
+
+| run | runner CPU (Ollama kernel) | base | head | change | verdict |
+|---|---|---|---|---|---|
+| [42701455881](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42701455881) (PR) | AMD EPYC 9V74 (zen4, AVX-512) | 127/150 | 127/150 (PR merge) | +0.00 | **PASS** |
+| [42706176139](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706176139) (PR) | AMD EPYC 7763 (haswell, AVX2) | 136/150 | 136/150 (PR merge) | +0.00 | **PASS** |
+| [42706182502](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42706182502) (dispatch) | Intel Xeon 8370C (icelake, AVX-512) | 127/150 | 104/150 (`triage-p3`) | −15.33 | **FAIL** (exit 2) |
+
+The same champion scored 127 on two runners and **136 on the third**. GitHub assigns different CPUs, and Ollama
+picks a different kernel for each, so an absolute threshold doesn't hold even from one GitHub runner to the next. Base
+and head on one runner matched exactly in both PASS runs, and the regressed prompt fell far outside the margin. In
+the first run the failed case ids were also identical to the earlier CPU run 42692611563. The raw reply text matched
+for 150/150 cases between base and that run, but for 149/150 between base and head (one reply worded differently,
+same grade). So even one runner isn't perfectly bit-stable, which is one reason the gate keeps a margin rather than
+requiring equality. Evidence: `docs/evidence/llm/promptfoo/relative.github-runs.json` (all three runs) and
+`relative.github-cpu.*` (the first run's outputs and verdict). On the build machine (Metal),
+`make llm-gate-relative` scored 139/150 for both runs (PASS), and with `LLM_GATE_HEAD_PROMPT=triage-p3` scored the
+head 111/150, −18.67 points, **FAIL** (`make` exits 2).
+
+Locally, `make llm-gate-relative` does the same against a temporary git worktree of `LLM_GATE_BASE` (default
+`origin/main`); `LLM_GATE_BASE_PROMPT` / `LLM_GATE_HEAD_PROMPT` override the prompt of either run.
+`make llm-gate` with the absolute 90% threshold still works on the Metal machine it was calibrated on.
+`tests/test_llm_gate_compare.py` checks the comparator on the recorded outputs: champion vs champion passes, p2 vs
+p3 fails (-18.7 points), Metal vs CPU for the same champion fails (-8.0, the reason the runs must share a runner),
+3 lost cases pass and 4 fail, and errors or a case-count mismatch fail.
 
 ## Recorded run
 
