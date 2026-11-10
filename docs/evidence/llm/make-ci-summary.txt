@@ -28,7 +28,7 @@ uv run --frozen scw chaos-replay
 [chaos] PASS  repeat_rollback        second rollback is an idempotent no-op (pointer generation unchanged), and is audited
 [chaos] PASS  restart_recovery       restart within stuck window resumes canary with persisted counters; a stuck release is reverted to the champion on the next start
 [chaos] PASS  promotion_race         concurrent approve + rollback serialize: one pointer change per successful operation, no lost update, pointer and release state agree
-[chaos] 10/10 passed; report: /Users/alexrosen/Development/portfolio-worktrees/spectral-canary-works-ai-eng/var/runs/chaos-20261109-134020/report.json
+[chaos] 10/10 passed; report: var/runs/chaos-20261109-134020/report.json
 ✓ built in 424ms
 make ci: all checks passed
 # web unit tests (npm test): 5 passed

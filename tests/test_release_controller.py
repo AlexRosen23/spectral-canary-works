@@ -214,6 +214,8 @@ def test_degraded_candidate_rolls_back_under_shift_only(rt) -> None:
     assert rt.store.deployment().champion_version == "v2-hgb"
     kinds = [e["kind"] for e in rt.store.events(release_id=rid)]
     assert kinds.index("rollback.executed") < kinds.index("rollback.verified") < kinds.index("postmortem.written")
+    written = next(e for e in rt.store.events(release_id=rid) if e["kind"] == "postmortem.written")
+    assert written["payload"]["path"] == f"reports/postmortem-{rid}.md"  # never an absolute local path
 
     # The postmortem's impact must agree with the evidence that triggered the rollback (it used to count requests,
     # one direction only, with labels that arrived after the rollback, so its numbers looked contradictory).
