@@ -27,7 +27,7 @@ curl -s localhost:5120/metrics | grep -E 'scw_(requests_total|rollbacks|candidat
 | `/readyz` 503 "champion artifact" | champion bytes changed on disk | restart the gateway: `recover()` reverts to `last_known_good` if that verifies (`recovery.champion_reverted`); otherwise `recovery.no_safe_champion` and an operator must re-register |
 | a release stuck in shadow/canary after a crash | the controller died | on restart, a release with no heartbeat for 30 min is reverted to the champion (`release.stuck_reverted`); a quick restart resumes the canary counters |
 | `/v1/registry/verify` shows `ok: false` | tampering or a missing artifact | treat as a security incident; do not promote; compare hashes against the committed `manifests/` |
-| canary rolled back on "candidate error rate" while **champion model-call p95 is also high** | gateway saturation, not a bad model (measured in `LOAD_TEST_RESULTS.md` finding 5) | treat as a capacity incident: shed load or add replicas, then re-run the release; do not blame the model in the postmortem |
+| release **paused** with reason `inconclusive: gateway saturated …` | the champion's own model-call p95 crossed `saturation_champion_p95_ms` while the candidate timed out (`LOAD_TEST_RESULTS.md` finding 5) | treat as a capacity incident: shed load or add replicas, then resume with `POST /v1/releases/{id}/canary` (evidence starts over) or roll back; the model was not judged |
 | `scw_telemetry_dropped_total` > 0 | writer queue full (overload) | predictions still served; guardrail evidence is incomplete, so do not promote during the overload |
 
 ## Manual rollback (idempotent)

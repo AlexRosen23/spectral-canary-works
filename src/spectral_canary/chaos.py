@@ -159,6 +159,8 @@ def chaos_promotion_race(paths: StatePaths, run_dir: Path) -> dict[str, Any]:
 POLICY_OVERRIDES: dict[str, dict[str, Any]] = {
     "latency_spike": {"window_requests": 600, "min_candidate_requests": 50},
     "candidate_timeout": {"window_requests": 600, "min_candidate_requests": 50},
+    # 300-request window; the injected champion delay (60 ms) is over a 40 ms saturation line so the replay stays short
+    "gateway_saturation": {"window_requests": 300, "min_candidate_requests": 20, "saturation_champion_p95_ms": 40.0},
 }
 
 

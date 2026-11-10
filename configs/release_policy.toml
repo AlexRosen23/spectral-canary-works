@@ -34,6 +34,12 @@ max_error_rate = 0.02           # candidate-arm error budget per window
 # hit both arms) do not roll back a healthy candidate.
 latency_p95_budget_ms = 50.0
 latency_p95_ratio_vs_champion = 6.0
+# Saturation-aware attribution (load test finding 5). When the CHAMPION's own model-call p95 in the same window is
+# above this, the gateway itself is overloaded: candidate timeouts are then queueing, not evidence against the model.
+# If the only breach is an error budget made of timeouts, the window is "inconclusive_saturated" and the release is
+# PAUSED (the candidate leaves traffic, which also sheds load; nothing is blamed on the model). Quality breaches and
+# real (non-timeout) errors still roll back under saturation. An operator resumes the canary (fresh evidence) or rolls back.
+saturation_champion_p95_ms = 100.0
 # Label-free early warning: flagged-rate ratio between arms (arms are randomized by request key).
 max_flag_rate_ratio_drop = 0.35 # candidate flag rate < (1 - 0.35) x champion flag rate -> breach
 # Labeled guardrail (paired): on candidate-served labeled frauds, the champion is also scored; breach when
