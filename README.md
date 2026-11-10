@@ -550,8 +550,11 @@ dispatch only.
   suite and the release story twice, once in pytest and once through the CLI. The five PR jobs used about 24
   runner-minutes, and on PR #6 an LLM-lane change added a 28–37 min `llm-gate` run. That gate also fired on any
   `Makefile` or `ci.yml` edit.
-- After (PR #7): see the measured numbers on PR #7. The duplicate stories are gone, the rest runs on 4 pytest-xdist
-  workers, and `llm-gate` runs only when the LLM lane changes.
+- After (PR #7, merged 2026-11-10): the duplicate stories are gone, the rest runs on 4 pytest-xdist workers, and
+  `llm-gate` runs only when the LLM lane changes. Measured: the `python` job took 4.4–6.6 min on the pull requests
+  merged after it, and 6 min 39 s on `main` at `661003f`
+  ([run 42775799672](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42775799672), all 5 jobs green,
+  about 12 billed runner-minutes with each job rounded up). `llm-gate` now costs 20–37 min only on LLM-lane PRs.
 - Why it is CPU-bound: a cProfile of one in-process release story (16,400 requests) spends about 90% of its time
   in scikit-learn single-row inference. The calibrated v2/v3 models are 3-fold ensembles, so each prediction runs the
   preprocessing pipeline three times, and joblib's per-call dispatch is about 38% of that.

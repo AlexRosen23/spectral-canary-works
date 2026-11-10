@@ -25,3 +25,10 @@ Runs:
   champion on a GitHub CPU runner (84.7%). `relative.github-runs.json`: the relative CI gate
   (`make llm-gate-relative`) on three GitHub runners (two PASS with base = head, one FAIL for the regressed prompt);
   `relative.github-cpu.*`: the first run's promptfoo outputs and verdict.
+
+**Local paths (public-repo hygiene, 2026-11-10).** promptfoo writes absolute `basePath` and prompt `file://` paths
+into its results. In `promptfoo/triage-p2.results.json.gz` and `triage-p3.results.json.gz` these were rewritten to
+repo-relative paths (`evals/triage/...`); no score, grade or case changed (`tests/test_llm_gate_compare.py` reads
+both files). The two `events.jsonl.gz` logs still contain one absolute path each, in the `postmortem.written`
+payload. They are hash-chained, so editing a payload would break `verify_event_chain` on the evidence. They are
+left as recorded. Since 2026-11-10 the controller records that path relative to the run directory.

@@ -527,7 +527,12 @@ class Controller:
             verification = self._verify_serving(release_id, target, "rollback")
             path = self._write_postmortem(release_id)
             self.store.append_event(
-                "postmortem.written", {"path": str(path)}, actor="controller", release_id=release_id
+                # relative to the run directory: event logs get copied into public evidence, and an absolute
+                # path would carry the local username and folder layout with it
+                "postmortem.written",
+                {"path": f"{path.parent.name}/{path.name}"},
+                actor="controller",
+                release_id=release_id,
             )
             return {
                 **self._release(release_id),
