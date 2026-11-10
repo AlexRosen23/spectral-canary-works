@@ -306,6 +306,8 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | problem | cause | fix |
 |---|---|---|
 | Single-row inference ~95 ms p50 instead of ~5 ms | OpenMP thread pools spin-waiting on an oversubscribed machine | cap native threads at 1 (`OMP_NUM_THREADS=1` + `threadpoolctl`, [`serving.limit_native_threads`](src/spectral_canary/serving.py)) |
+| The postmortem's impact (124 labeled frauds, 28 missed) looked like it contradicted its own detection evidence (65 vs 83 of 112) | impact counted requests (repeat cards) and one direction of disagreement, with labels that kept arriving after the rollback | count cards like the guardrail, both directions and the net, with labels as of the rollback (`Store.requests_since(labels_as_of=…)`); a test checks the impact equals the breach's paired evidence and does not change when later labels arrive |
+| Incident replay showed the final verdict ("window 4: breach") while the cursor sat before the canary had started | the evidence panel fell back to the last breach when the cursor wasn't on an evaluation | show the latest evaluation at or before the cursor, or say there is none yet |
 | skops refused to load the gradient-boosting models | two types outside the allowlist | reviewed and allowlisted `functools.partial` and `sklearn.utils.validation.check_array` (ADR-6) |
 | Healthy models blocked or rolled back on latency | absolute budgets on a shared, heavily loaded laptop | latency must exceed the budget **and** 6× the champion measured alongside, best of 3 rounds (`dc464b9`) |
 | A slow candidate could delay champion answers | one shared thread pool | separate bulkhead executors per arm |
@@ -348,10 +350,14 @@ v2 ships because it is non-inferior with better point estimates, not because it 
 ### Rollback evidence
 
 Source: run `demo-20261109-001407` (real HTTP, gateway commit `f015610`, 2026-11-09). The generated
-postmortem is copied verbatim into [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md); each claim
-is in [`resume_evidence/metrics.json`](resume_evidence/metrics.json) with its command and commit.
-Rerun for this README on 2026-11-09 (run `demo-20261109-140904`, real HTTP, 114.6 s): identical outcome and
-numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain intact.
+postmortem is in [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md), regenerated from that run's own event
+log after an audit found its impact section counted requests in one direction (124 labeled frauds, 28 missed), which
+read as if it contradicted the 65 vs 83 of 112 cards that triggered the rollback. It now counts cards as the guardrail
+does, both directions, with labels known at the rollback: 112 cards, 26 missed only by the candidate and 8 only by the
+champion, net 18. Each claim is in [`resume_evidence/metrics.json`](resume_evidence/metrics.json) with its command and
+commit. Rerun for this README on 2026-11-09 (run `demo-20261109-140904`, real HTTP, 114.6 s): identical outcome and
+numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain intact. A clean-state rerun
+(fresh state directory, `make demo` on another port) at 17:46 CST matched again.
 
 | release | outcome | evidence |
 |---|---|---|
@@ -444,6 +450,12 @@ Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) 
 - **Single process.** Guardrail window counters live in the API process. Replicas would need them in the shared
   store and one elected controller (ADR-4).
 - **Local controls, not enterprise IAM.** Roles are random bearer tokens with only their hashes stored.
+- **The offline latency check measures on the machine it runs on.** It takes the best of 3 interleaved rounds against
+  the champion, but with no champion (bootstrap) only the absolute 50 ms budget applies. During this project's
+  2026-11-09 audit the Mac was at a load average near 200 from unrelated jobs, and the check failed closed twice:
+  once refusing v2 inside `make chaos-replay` (`degraded_predictions` errored, 9/10), once refusing the bootstrap
+  champion in a test fixture. Both passed on rerun, and it has not happened on a CI runner. **Next:** pin the
+  latency gate to a quiet, dedicated runner, or compare against a recorded baseline for the bootstrap case.
 - **Not deployed.** The AWS path is validated but not provisioned, and $0 has been spent. Provisioning needs
   the owner's approval and an expected cost.
 - **LLM lane: labels and graders.** Labels come from a rule table and graders are code. There is no LLM-as-judge

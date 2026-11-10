@@ -28,7 +28,8 @@ def build_llm_postmortem(store: Store, release_id: str) -> dict[str, Any]:
             None,
         )
     verify = next((e for e in events if e["kind"] in ("rollback.verified", "rollback.verification_failed")), None)
-    reqs = store.requests_since(0, release_id)
+    # labels known at the rollback only, so the report matches the decision and regenerates identically
+    reqs = store.requests_since(0, release_id, labels_as_of=rb["ts"] if rb else None)
     cand_served = [
         r for r in reqs if r["arm"] == "candidate" and r.get("served_version") == rel.get("candidate_version")
     ]

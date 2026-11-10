@@ -215,6 +215,18 @@ def test_degraded_candidate_rolls_back_under_shift_only(rt) -> None:
     kinds = [e["kind"] for e in rt.store.events(release_id=rid)]
     assert kinds.index("rollback.executed") < kinds.index("rollback.verified") < kinds.index("postmortem.written")
 
+    # The postmortem's impact must agree with the evidence that triggered the rollback (it used to count requests,
+    # one direction only, with labels that arrived after the rollback, so its numbers looked contradictory).
+    from spectral_canary.postmortem import build_postmortem
+
+    pm = build_postmortem(rt.store, rid)
+    imp, paired = pm["impact"], pm["breach_evaluation"]["payload"]["labeled"]["paired"]
+    assert imp["labeled_fraud_cards_paired"] == paired["positives"]
+    assert imp["cards_missed_by_candidate_only"] == paired["missed_by_candidate_only"]
+    assert imp["cards_missed_by_champion_only"] == paired["missed_by_champion_only"]
+    run_traffic(d, "v3-after", [Phase(BASE, 300, 204, "after rollback")], seed=80)  # more labels arrive later
+    assert build_postmortem(rt.store, rid)["impact"] == imp
+
 
 def test_guardrail_counts_cards_not_requests() -> None:
     """Regression (found in the c=32 load test): 140 candidate requests from 35 cards, none flagged, must not

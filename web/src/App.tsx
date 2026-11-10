@@ -28,12 +28,15 @@ export default function App() {
     }
   }, []);
 
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    refresh();
+    refresh().finally(() => setLoaded(true));
   }, [refresh]);
 
-  // Live event feed (SSE). New events append; a debounce refetches derived state.
+  // Live event feed (SSE), opened after the first load so it starts at the last event already shown instead of
+  // replaying the whole log (which also triggered a second full refetch). New events append; a debounce refetches.
   useEffect(() => {
+    if (!loaded) return;
     let t: number | undefined;
     const unsub = subscribeEvents(lastSeq.current, (e) => {
       if (e.seq <= lastSeq.current) return;
@@ -46,7 +49,7 @@ export default function App() {
       unsub();
       window.clearTimeout(t);
     };
-  }, [refresh]);
+  }, [refresh, loaded]);
 
   const releases = d.releases;
   const current = useMemo(() => {
@@ -164,10 +167,14 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
   const shiftStart = series.findIndex((p) => p.scenarios.includes("high_value_online_surge"));
   const bands = shiftStart >= 0 ? [{ from: shiftStart, to: series.length - 1, label: "SIMULATED shift" }] : [];
   const xl = series.map((p) => `req ${p.start_seq}–${p.end_seq}`);
+  const empty = rel.state === "blocked" ? "No traffic: the offline gate blocked this release, so it never served a request." : "No recorded traffic yet.";
   const cursorIdx = cursorEvent ? bucketOf(cursorEvent.ts) : null;
   const ev = (rel.last_evaluation ?? null);
-  const breachEv = [...evals].reverse().find((e) => e.payload.verdict === "breach");
-  const shown = cursorEvent && cursorEvent.kind === "guardrail.evaluated" ? cursorEvent.payload : breachEv?.payload ?? evals[evals.length - 1]?.payload;
+  // Evidence as known at the replay cursor: the latest guardrail evaluation at or before it. Showing the final verdict
+  // while the cursor sits before the canary started would replay the incident with hindsight.
+  const asOfCursor = [...events.slice(0, cursor + 1)].reverse().find((e) => e.kind === "guardrail.evaluated");
+  const shown = asOfCursor?.payload;
+  const replayingEarly = !shown && evals.length > 0;
   const cand = models.find((m) => m.version === rel.candidate_version);
   const champ = models.find((m) => m.version === rel.champion_version);
 
@@ -198,13 +205,13 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
       <div className="grid2">
         <section className="card">
           <div className="card-head"><h2>Live traffic</h2><span className="dim">buckets of 250 recorded requests · this release</span></div>
-          <LineChart title="Handler latency (ms)" xLabels={xl} yFormat={(v) => v.toFixed(1)} markers={markers} cursor={cursorIdx} bands={bands}
+          <LineChart empty={empty} title="Handler latency (ms)" xLabels={xl} yFormat={(v) => v.toFixed(1)} markers={markers} cursor={cursorIdx} bands={bands}
             series={[
               { key: "p50", label: "p50", color: "var(--series-1)", values: series.map((p) => p.latency_ms.p50) },
               { key: "p95", label: "p95", color: "var(--series-2)", values: series.map((p) => p.latency_ms.p95) },
               { key: "p99", label: "p99", color: "var(--series-7)", values: series.map((p) => p.latency_ms.p99), dashed: true },
             ]} caption="Measured end-to-end in the gateway (includes the paired champion score on canary requests)." />
-          <LineChart title="Requests per bucket by arm" xLabels={xl} yFormat={(v) => v.toFixed(0)} markers={markers} cursor={cursorIdx} bands={bands}
+          <LineChart empty={empty} title="Requests per bucket by arm" xLabels={xl} yFormat={(v) => v.toFixed(0)} markers={markers} cursor={cursorIdx} bands={bands}
             series={[
               { key: "champ", label: "champion arm", color: C_CHAMP, values: series.map((p) => p.arms.champion.requests) },
               { key: "cand", label: "candidate arm", color: C_CAND, values: series.map((p) => p.arms.candidate.requests) },
@@ -212,12 +219,12 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
         </section>
         <section className="card">
           <div className="card-head"><h2>Quality monitor</h2><span className="dim">label-free first, delayed labels second</span></div>
-          <LineChart title="Flag rate (share sent to review)" xLabels={xl} yFormat={(v) => pct(v, 0)} markers={markers} cursor={cursorIdx} bands={bands}
+          <LineChart empty={empty} title="Flag rate (share sent to review)" xLabels={xl} yFormat={(v) => pct(v, 0)} markers={markers} cursor={cursorIdx} bands={bands}
             series={[
               { key: "champ", label: "champion arm", color: C_CHAMP, values: series.map((p) => p.arms.champion.flag_rate) },
               { key: "cand", label: "candidate arm", color: C_CAND, values: series.map((p) => p.arms.candidate.flag_rate) },
             ]} />
-          <LineChart title="Recall on labeled frauds (labels arrive late; ~20% never)" xLabels={xl} yFormat={(v) => pct(v, 0)} yMax={1} markers={markers} cursor={cursorIdx} bands={bands}
+          <LineChart empty={empty} title="Recall on labeled frauds (labels arrive late; ~20% never)" xLabels={xl} yFormat={(v) => pct(v, 0)} yMax={1} markers={markers} cursor={cursorIdx} bands={bands}
             series={[
               { key: "champ", label: "champion arm", color: C_CHAMP, values: series.map((p) => (p.arms.champion.labeled_positives >= 5 ? p.arms.champion.recall_labeled : null)) },
               { key: "cand", label: "candidate arm", color: C_CAND, values: series.map((p) => (p.arms.candidate.labeled_positives >= 5 ? p.arms.candidate.recall_labeled : null)) },
@@ -230,9 +237,9 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
           <h2>Incident replay</h2>
           <div className="controls">
             <button onClick={() => setCursor(0)} aria-label="first event">⏮</button>
-            <button onClick={() => setCursor((c) => Math.max(0, c - 1))} aria-label="previous event">◀</button>
+            <button onClick={() => setCursor((c) => Math.max(0, c - 1))} aria-label="previous event">‹</button>
             <button onClick={() => { if (cursor >= events.length - 1) setCursor(0); setPlaying((p) => !p); }} aria-label="play">{playing ? "❚❚" : "▶"}</button>
-            <button onClick={() => setCursor((c) => Math.min(events.length - 1, c + 1))} aria-label="next event">▶</button>
+            <button onClick={() => setCursor((c) => Math.min(events.length - 1, c + 1))} aria-label="next event">›</button>
             <input type="range" min={0} max={Math.max(0, events.length - 1)} value={cursor} onChange={(e) => setCursor(Number(e.target.value))} aria-label="timeline position" />
             <span className="mono dim">{cursor + 1}/{events.length}</span>
           </div>
@@ -249,7 +256,9 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
             ))}
           </ol>
           <div className="evidence">
-            {shown ? <Evidence p={shown} /> : <div className="empty">No guardrail evaluation recorded for this release (it never reached canary).</div>}
+            {shown ? <Evidence p={shown} /> : replayingEarly
+              ? <div className="empty">No guardrail evaluation yet at this point of the replay (the first one is at event #{evals[0].seq}).</div>
+              : <div className="empty">No guardrail evaluation recorded for this release (it never reached canary).</div>}
             {cursorEvent && (
               <details className="raw"><summary>Raw event #{cursorEvent.seq} · hash {short(cursorEvent.hash, 14)}</summary><pre>{JSON.stringify(cursorEvent.payload, null, 2)}</pre></details>
             )}
@@ -401,8 +410,9 @@ function Registry({ models, champion, onOpen }: { models: ModelSummary[]; champi
 
 function ReproDrawer({ version, onClose }: { version: string; onClose: () => void }) {
   const [m, setM] = useState<ModelDetail | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    api.model(version).then(setM);
+    api.model(version).then(setM).catch((e) => setErr(String(e)));
   }, [version]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -414,7 +424,7 @@ function ReproDrawer({ version, onClose }: { version: string; onClose: () => voi
     <div className="drawer-bg" onClick={onClose}>
       <aside className="drawer" role="dialog" aria-label={`Reproducibility for ${version}`} onClick={(e) => e.stopPropagation()}>
         <div className="card-head"><h2>Reproducibility · <span className="mono">{version}</span></h2><button className="link" onClick={onClose}>close ✕</button></div>
-        {!man ? <div className="empty">Loading manifest…</div> : (
+        {err ? <div className="empty">Could not load the manifest: {err}</div> : !man ? <div className="empty">Loading manifest…</div> : (
           <>
             <dl className="kv">
               <dt>Config</dt><dd className="mono">{man.training.config_path} · sha256 {short(man.training.config_sha256, 16)}</dd>
