@@ -38,17 +38,10 @@ jobs:
         run: uv run --frozen python scripts/check_contract.py
       - name: "chaos CLI smoke (scw chaos-replay end to end on one scenario; pytest runs all ten below)"
         run: uv run --frozen scw chaos-replay --only schema_break
-      - name: "tests (unit, API, e2e rollback in-process + over real HTTP, all 10 chaos scenarios) + in-process demo"
-        # The runner has 4 cores. pytest-xdist spreads the suite over 3 workers while the CLI demo (the same release
-        # story, through `scw demo`) uses the fourth. Before this, everything ran serially and the job took 11-21 min.
-        run: |
-          uv run --frozen scw demo --in-process > "$RUNNER_TEMP/demo.log" 2>&1 &
-          demo=$!
-          status=0
-          uv run --frozen pytest -n 3 --dist worksteal --durations=15 --basetemp="$RUNNER_TEMP/pytest" || status=$?
-          wait "$demo" || status=1
-          cat "$RUNNER_TEMP/demo.log"
-          exit "$status"
+      - name: "tests (unit, API, e2e: release story + determinism, `scw demo` over real HTTP, all chaos scenarios)"
+        # pytest-xdist on the runner's 4 cores. Before this, everything ran serially (and the chaos suite and the release
+        # story ran twice: once in pytest, once through the CLI), and the job took 11-21 min.
+        run: uv run --frozen pytest -n 4 --dist worksteal --durations=15 --basetemp="$RUNNER_TEMP/pytest"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -56,7 +49,7 @@ jobs:
           retention-days: 7
           path: |
             var/runs/*/report.json
-            ${{ runner.temp }}/pytest/**/runs/chaos-*/report.json
+            ${{ runner.temp }}/pytest/**/runs/*/report.json
 
   security:
     name: dependency + secret + image scanning

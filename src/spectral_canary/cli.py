@@ -270,7 +270,9 @@ def cmd_chaos(args: argparse.Namespace) -> int:
         print(f"[chaos] {exc}", file=sys.stderr)
         return 2
     for s in report["scenarios"]:
-        print(f"[chaos] {'PASS' if s['passed'] else 'FAIL'}  {s['scenario']:<22} {s.get('expected', '')}")
+        # a scenario that crashed has no expected outcome, only the error: print that instead of a blank
+        detail = s.get("expected") or f"ERROR {s.get('error', '')}"
+        print(f"[chaos] {'PASS' if s['passed'] else 'FAIL'}  {s['scenario']:<22} {detail}")
     print(
         f"[chaos] {sum(s['passed'] for s in report['scenarios'])}/{len(report['scenarios'])} passed; "
         f"report: {report['report_path']}"

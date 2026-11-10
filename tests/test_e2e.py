@@ -8,7 +8,7 @@ import os
 import pytest
 
 from spectral_canary.chaos import run_chaos, scenario_names
-from spectral_canary.drivers import HttpDriver, InProcessDriver
+from spectral_canary.drivers import InProcessDriver
 from spectral_canary.fixtures import fixture_runtime
 from spectral_canary.paths import state_paths
 from spectral_canary.scenarios import release_story
@@ -16,75 +16,72 @@ from spectral_canary.scenarios import release_story
 pytestmark = pytest.mark.e2e
 
 
-def test_release_story_in_process(scw_home, tmp_path) -> None:
-    rt = fixture_runtime(tmp_path / "story", home=scw_home)
+def _story_projection(home: str, run_dir: str, run_id: str) -> dict:
+    """Run the full release story in-process and return its result plus a projection of the event log.
+
+    Module-level so a spawned worker process can run it (the determinism test runs two stories side by side)."""
+    from pathlib import Path
+
+    rt = fixture_runtime(Path(run_dir), home=Path(home))
     try:
-        res = release_story(InProcessDriver(rt), "pytest-story")
-        assert res["passed"], json.dumps({"expected": res["expected"], "actual": res["actual"]}, indent=1)
-        assert rt.store.verify_event_chain()["ok"]
-        pm = (tmp_path / "story" / "reports" / f"postmortem-{res['release_ids']['C']}.md").read_text()
-        assert "guardrail_breach" in pm and "simulated" in pm.lower()
+        res = release_story(InProcessDriver(rt), run_id, scale=1.0)
+        out = []
+        for e in rt.store.events(limit=100_000):
+            p = e["payload"]
+            if e["kind"] == "guardrail.evaluated":
+                p = {
+                    "verdict": p["verdict"],
+                    "window": p["window_index"],
+                    "labeled": p["labeled"]["paired"],
+                    "flags": [p["arms"][a]["flagged"] for a in ("candidate", "champion")],
+                }
+            elif e["kind"] in ("model.registered",):
+                p = {"version": p["version"]}
+            elif "verified" in e["kind"] or e["kind"] in (
+                "postmortem.written",
+                "release.staged",
+                "release.gate_evaluated",
+                "release.shadow_evaluated",
+            ):
+                p = {}
+            out.append((e["kind"], e["release_id"], json.dumps(p, sort_keys=True, default=str)))
+        return {"result": res, "chain": rt.store.verify_event_chain(), "projection": out}
     finally:
         rt.close()
 
 
-def test_replay_is_deterministic(scw_home, tmp_path) -> None:
-    """Same seeds -> same decisions and same evidence (wall-clock latency excluded)."""
+def test_release_story_passes_and_replays_deterministically(scw_home, tmp_path) -> None:
+    """The release story (v2 promoted, v4 blocked, v3 rolled back under the shift) passes in-process, and the same
+    seeds give the same decisions and evidence twice (wall-clock latency excluded). The two runs execute in parallel
+    processes: same assertions as running them one after the other, half the wall time."""
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
 
-    def projection(run: str) -> list:
-        rt = fixture_runtime(tmp_path / run, home=scw_home)
-        try:
-            release_story(InProcessDriver(rt), "replay", scale=1.0)
-            out = []
-            for e in rt.store.events(limit=100_000):
-                p = e["payload"]
-                if e["kind"] == "guardrail.evaluated":
-                    p = {
-                        "verdict": p["verdict"],
-                        "window": p["window_index"],
-                        "labeled": p["labeled"]["paired"],
-                        "flags": [p["arms"][a]["flagged"] for a in ("candidate", "champion")],
-                    }
-                elif e["kind"] in ("model.registered",):
-                    p = {"version": p["version"]}
-                elif "verified" in e["kind"] or e["kind"] in (
-                    "postmortem.written",
-                    "release.staged",
-                    "release.gate_evaluated",
-                    "release.shadow_evaluated",
-                ):
-                    p = {}
-                out.append((e["kind"], e["release_id"], json.dumps(p, sort_keys=True, default=str)))
-            return out
-        finally:
-            rt.close()
-
-    a, b = projection("r1"), projection("r2")
-    assert a == b
+    with ProcessPoolExecutor(2, mp_context=mp.get_context("spawn")) as pool:
+        fa = pool.submit(_story_projection, str(scw_home), str(tmp_path / "r1"), "replay")
+        fb = pool.submit(_story_projection, str(scw_home), str(tmp_path / "r2"), "replay")
+        a, b = fa.result(), fb.result()
+    res = a["result"]
+    assert res["passed"], json.dumps({"expected": res["expected"], "actual": res["actual"]}, indent=1)
+    assert a["chain"]["ok"] and b["chain"]["ok"]
+    pm = (tmp_path / "r1" / "reports" / f"postmortem-{res['release_ids']['C']}.md").read_text()
+    assert "guardrail_breach" in pm and "simulated" in pm.lower()
+    assert a["projection"] == b["projection"]
 
 
 @pytest.mark.skipif(os.environ.get("SCW_SKIP_HTTP_E2E") == "1", reason="explicitly skipped")
-def test_rollback_over_real_http(scw_home, tmp_path, monkeypatch) -> None:
-    """Same story through a real uvicorn process and real HTTP requests (reduced traffic volume)."""
-    from spectral_canary.auth import ensure_operators_file
-    from spectral_canary.cli import start_server, stop_server
+def test_demo_cli_rolls_back_over_real_http(scw_home, monkeypatch) -> None:
+    """`scw demo` end to end: a real uvicorn gateway, real HTTP requests, the full story, then the CLI's own checks
+    (event chain, registry re-verification, postmortem on disk) and the metrics it scraped from the live server."""
+    from spectral_canary.cli import main
 
-    run = tmp_path / "http"
-    rt = fixture_runtime(run, home=scw_home)
-    rt.close()
     monkeypatch.setenv("SCW_HOME", str(scw_home))
-    tokens = ensure_operators_file(state_paths(scw_home).operators)
-    port = _free_port()  # a fixed port made the test fail whenever an orphaned server still held it
-    proc = start_server(run / "registry.sqlite", port, {"SCW_HOME": str(scw_home)}, log_path=run / "server.log")
-    try:
-        d = HttpDriver(f"http://127.0.0.1:{port}", tokens)
-        res = release_story(d, "pytest-http")
-        assert res["passed"], json.dumps({"expected": res["expected"], "actual": res["actual"]}, indent=1)
-        r = d.http.post("/v1/predict", json={"request_key": "card-1", "features": _row(scw_home)})
-        assert r.headers["X-Model-Version"] == "v2-hgb"
-        assert "scw_rollbacks_total" in d.http.get("/metrics").text
-    finally:
-        stop_server(proc)
+    assert main(["demo", "--port", str(_free_port())]) == 0
+    runs = sorted(state_paths(scw_home).runs.glob("demo-*"))
+    report = json.loads((runs[-1] / "report.json").read_text())
+    assert report["passed"] and report["driver"] == "http"
+    assert report["result"]["actual"]["post_rollback_versions"] == ["v2-hgb"]  # X-Model-Version after rollback
+    assert "scw_rollbacks_total" in (runs[-1] / "metrics.prom").read_text()
 
 
 def _free_port() -> int:
@@ -93,14 +90,6 @@ def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
-
-
-def _row(home):
-    from spectral_canary.data import load_split_csv
-    from spectral_canary.schema import decode_row
-
-    X, _, _ = load_split_csv(state_paths(home).data / "val.csv")
-    return decode_row(X[0])
 
 
 @pytest.mark.parametrize("scenario", scenario_names())
