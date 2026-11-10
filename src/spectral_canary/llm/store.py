@@ -121,13 +121,22 @@ class LLMStore(Store):
         return d
 
     def requests_since(
-        self, start_seq: int, release_id: str | None = None, with_labels: bool = True
+        self,
+        start_seq: int,
+        release_id: str | None = None,
+        with_labels: bool = True,
+        labels_as_of: float | None = None,
     ) -> list[dict[str, Any]]:
+        args: list[Any] = []
+        join = "LEFT JOIN llm_feedback f ON f.request_id = r.request_id"
+        if labels_as_of is not None:  # same contract as Store.requests_since
+            join += " AND f.ts <= ?"
+            args.append(labels_as_of)
         q = (
             "SELECT r.*, f.reason_code AS fb_reason, f.escalate AS fb_escalate FROM llm_requests r"
-            " LEFT JOIN llm_feedback f ON f.request_id = r.request_id WHERE r.seq > ?"
+            f" {join} WHERE r.seq > ?"
         )
-        args: list[Any] = [start_seq]
+        args.append(start_seq)
         if release_id is not None:
             q += " AND r.release_id = ?"
             args.append(release_id)
