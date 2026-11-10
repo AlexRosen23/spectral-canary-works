@@ -162,8 +162,8 @@ own.
 Each run, the job log and the step summary show both pass rates, the margin, the difference and the failed cases by
 metric; the `promptfoo-results` artifact keeps `relative/base.json`, `relative/head.json` and `relative/verdict.json`.
 It runs on pull requests that touch `configs/llm/`, `evals/triage/`, `src/spectral_canary/llm/`,
-`scripts/llm_gate_*`, the `Makefile` or the workflow (a `changes` job with `dorny/paths-filter` decides, so the
-Ollama container starts only then), and on manual dispatch (`gh workflow run ci --ref <branch> -f
+`scripts/llm_gate_*` or its own workflow, `.github/workflows/llm-gate.yml` (a native `pull_request.paths` filter, so
+the Ollama container starts only then), and on manual dispatch (`gh workflow run llm-gate --ref <branch> -f
 llm_gate_base_ref=main`; add `-f llm_gate_head_prompt=triage-p3` to score the regressed prompt as the head and watch
 the gate fail). Two suite runs take 26–41 minutes on a CPU runner, depending on which CPU it gets.
 
