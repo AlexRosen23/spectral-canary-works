@@ -196,7 +196,7 @@ function ReleaseView({ rel, events, models, runId, onCard }: { rel: Release; eve
         </ol>
         {rel.reason && (
           <div className={`reason ${stateTone(rel.state)}`}>
-            <strong>{rel.state === "blocked" ? "Blocked" : rel.state === "rolled_back" ? "Rolled back" : "Note"}:</strong> {rel.reason}
+            <strong>{rel.state === "blocked" ? "Blocked" : rel.state === "rolled_back" ? "Rolled back" : rel.state === "paused" ? "Paused" : "Note"}:</strong> {rel.reason}
           </div>
         )}
         {rel.gate_report && <GateTable checks={rel.gate_report.checks} />}
@@ -308,6 +308,7 @@ function Evidence({ p }: { p: Record<string, any> }) {
     <div>
       <h3>Window {p.window_index} <Pill tone={verdictTone(p.verdict)} text={p.verdict} /></h3>
       {p.breaches?.length > 0 && <ul className="breaches">{p.breaches.map((b: string) => <li key={b}>▲ {b}</li>)}</ul>}
+      {p.verdict === "inconclusive_saturated" && p.saturation?.reason && <p className="small">◌ {p.saturation.reason}. Paused, not rolled back: the champion was slow in the same window, so the candidate's timeouts are not evidence against it.</p>}
       {p.insufficient?.length > 0 && <ul className="insufficient">{p.insufficient.map((b: string) => <li key={b}>◌ {b}</li>)}</ul>}
       <table className="data compact">
         <thead><tr><th>window signal</th><th><i className="sw" style={{ background: C_CAND }} />candidate</th><th><i className="sw" style={{ background: C_CHAMP }} />champion</th></tr></thead>

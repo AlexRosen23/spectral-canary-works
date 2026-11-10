@@ -40,9 +40,10 @@ They make up about 3% of offline frauds, so the defect was invisible offline.
 - **Clustered traffic broke my statistics.** My first load test rolled back a *healthy* model: 146 canary
   requests came from 38 repeat cards, and a request-level confidence interval treated them as independent.
   Guardrails now count one observation per card, and there's a regression test.
-- **The guardrail can mistake saturation for a bad model.** Past about 370 requests/s on one Python process,
-  candidate calls queue past the 500 ms timeout and trip the error budget. It fails safe, but misattributes
-  the cause. Documented, with a saturation-aware "pause" as the proposed fix.
+- **The guardrail used to mistake saturation for a bad model.** Past about 370 requests/s on one Python process,
+  candidate calls queue past the 500 ms timeout and trip the error budget. Now, when the champion is slow in the
+  same window and the failures are timeouts, the release pauses instead of rolling back (chaos
+  `gateway_saturation`); the load test itself has not been rerun.
 
 ## Numbers (measured; machine: Apple M5 Pro laptop under a 1-min load average of 13–27 from other work)
 

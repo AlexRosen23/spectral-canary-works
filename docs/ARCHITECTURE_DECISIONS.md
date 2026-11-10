@@ -34,7 +34,7 @@ telemetry to a queue + columnar store.
 ## ADR-4: guardrail windows on a logical clock, evaluated in the request path
 
 **Decision:** evaluate every 1,500 routed requests, synchronously on the request that crosses the boundary.
-**Why:** replay determinism (`test_replay_is_deterministic`) and no dependence on wall-clock speed, which on
+**Why:** replay determinism (`test_release_story_passes_and_replays_deterministically`) and no dependence on wall-clock speed, which on
 a loaded laptop varies 10× or more. **Cost:** one request per window pays the evaluation latency, visible as
 p99/max spikes in the load test. **Upgrade for replicas:** a single elected controller evaluating from the
 shared store, with a time-based safety evaluation for low-traffic periods (the `stale_after_seconds` check

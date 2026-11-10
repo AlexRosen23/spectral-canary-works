@@ -1,22 +1,14 @@
 # CI for Spectral Canary Works. ENABLED: the owner turned GitHub Actions on on 2026-11-09, and the repo is public
 # (standard GitHub-hosted runners are free for public repos). It runs on pull requests and manual dispatch, not on
 # every push. Every job here also runs locally: `make ci` (lint, types, fixtures,
-# contract, tests incl. e2e failure->rollback, chaos replay, web build), `make iac-validate`, `make docker-build`,
-# `make llm-gate-relative`. No secrets are required by any job.
+# contract, tests incl. e2e failure->rollback and every chaos scenario, web build), `make iac-validate`,
+# `make docker-build`. The LLM prompt/model gate is a separate workflow (llm-gate.yml) that runs only when a pull
+# request touches the LLM lane. No secrets are required by any job.
 name: ci
 
 on:
   pull_request:
   workflow_dispatch:
-    inputs:
-      llm_gate_base_ref:
-        description: "llm-gate: branch, tag or SHA to compare the dispatched ref against"
-        required: false
-        default: "main"
-      llm_gate_head_prompt:
-        description: "llm-gate: optional prompt for the head run (e.g. triage-p3, the regressed prompt, to see the gate fail)"
-        required: false
-        default: ""
 
 permissions:
   contents: read
@@ -32,7 +24,7 @@ jobs:
   python:
     name: lint, types, fixtures, contract, tests (incl. e2e rollback), chaos replay
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -44,15 +36,20 @@ jobs:
         run: uv run --frozen scw train-fixtures
       - name: model_artifact_v1 contract + schema compatibility
         run: uv run --frozen python scripts/check_contract.py
-      - name: tests (unit, API contract, e2e failure->rollback over real HTTP)
-        run: uv run --frozen pytest -q
-      - name: chaos replay (seeded fault suite with expected outcomes)
-        run: uv run --frozen scw chaos-replay
-      - name: reproducible dry-run release (demo, in-process)
-        run: uv run --frozen scw demo --in-process
+      - name: "chaos CLI smoke (scw chaos-replay end to end on one scenario; pytest runs every scenario below)"
+        run: uv run --frozen scw chaos-replay --only schema_break
+      - name: "tests (unit, API, e2e: release story + determinism, `scw demo` over real HTTP, all chaos scenarios)"
+        # pytest-xdist on the runner's 4 cores. Before this, everything ran serially (and the chaos suite and the release
+        # story ran twice: once in pytest, once through the CLI), and the job took 11-21 min.
+        run: uv run --frozen pytest -n 4 --dist worksteal --durations=15 --basetemp="$RUNNER_TEMP/pytest"
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: run-reports, path: "var/runs/*/report.json", retention-days: 7}
+        with:
+          name: run-reports
+          retention-days: 7
+          path: |
+            var/runs/*/report.json
+            ${{ runner.temp }}/pytest/**/runs/*/report.json
 
   security:
     name: dependency + secret + image scanning
@@ -112,82 +109,3 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/iac_validate.sh
-
-  changes:
-    # Decides whether llm-gate needs to run on a pull request, so its Ollama service container starts only when used.
-    name: detect LLM-lane changes
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read   # paths-filter lists the PR's changed files through the API
-    outputs:
-      llm: ${{ steps.filter.outputs.llm }}
-    steps:
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            llm:
-              - 'configs/llm/**'
-              - 'evals/triage/**'
-              - 'src/spectral_canary/llm/**'
-              - 'scripts/llm_gate_*'
-              - 'Makefile'
-              - '.github/workflows/ci.yml'
-
-  llm-gate:
-    # Prompt/model regression gate for the LLM triage lane, RELATIVE to the PR base. It checks out the base
-    # (github.base_ref) next to the PR head, runs the promptfoo suite (evals/triage/) for both against the same Ollama
-    # service on this runner, and fails when the head's pass rate drops more than the release policy's margin below the
-    # base's: 100 * 0.05 (max_escalation_recall_drop) * 66/150 must-escalate cases = 2.2 points (scripts/llm_gate_compare.py).
-    # Why relative: the absolute 90% threshold of `make llm-gate` was calibrated on Apple Metal (champion 139/150 = 92.7%);
-    # here the same weights, Ollama 0.40.13, prompt, params and seed run on the CPU backend and score 127/150 = 84.7%
-    # (run 42692611563, docs/evidence/llm/promptfoo/triage-p2.github-cpu.*). Greedy decoding is not bit-identical across
-    # backends, but both runs of one job share a backend. Runs on PRs that touch the LLM lane, and on manual dispatch
-    # (compares the dispatched ref with `llm_gate_base_ref`, default main).
-    name: LLM triage regression gate (promptfoo, local Ollama, PR head vs base on one runner)
-    needs: changes
-    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.llm == 'true') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 75
-    services:
-      ollama:
-        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
-        ports: ["11434:11434"]
-    steps:
-      - name: check out the PR head (the merge result on pull_request)
-        uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: check out the comparison base
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.llm_gate_base_ref }}
-          path: .llm-gate-base
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22.22"
-          cache: npm
-          cache-dependency-path: |
-            evals/triage/package-lock.json
-            .llm-gate-base/evals/triage/package-lock.json
-      - name: pull the pinned model tag
-        run: |
-          curl -fsS http://127.0.0.1:11434/api/pull -d '{"model":"llama3.2:3b","stream":false}'
-          echo; curl -fsS http://127.0.0.1:11434/api/version
-          echo; curl -fsS http://127.0.0.1:11434/api/tags | python3 -c 'import json,sys; [print(m["name"], m["digest"]) for m in json.load(sys.stdin)["models"]]'
-      - name: promptfoo eval, base then head (fails if head drops more than the margin below base)
-        env:
-          LLM_GATE_BASE_DIR: .llm-gate-base
-          LLM_GATE_HEAD_PROMPT: ${{ inputs.llm_gate_head_prompt }}
-          PYTHON: python3
-          BASE_LABEL: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.llm_gate_base_ref }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          echo "base: $BASE_LABEL; head: $GITHUB_REF${PR_HEAD_SHA:+ (PR head $PR_HEAD_SHA, merged into the base)}"
-          make llm-gate-relative
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with: {name: promptfoo-results, path: "evals/triage/results/", retention-days: 7}

@@ -18,6 +18,8 @@ export function trackStates(rel: Pick<Release, "state">, reached: Set<string>): 
     else if (i < lastReached || (i === lastReached && rel.state !== s)) out[s] = "done";
     else out[s] = "pending";
   });
+  // A paused canary (operator or saturated gateway) has not finished: it can resume or roll back.
+  if (rel.state === "paused" && reached.has("canary")) out.canary = "current";
   if (terminalFail) {
     const failAt = rel.state === "blocked" ? "validated" : TRACK[Math.min(lastReached + 1, TRACK.length - 1)];
     out[failAt] = "failed";
@@ -68,7 +70,7 @@ export function stateTone(state: string): Tone {
 export function verdictTone(v: string | undefined): Tone {
   if (v === "healthy") return "good";
   if (v === "breach") return "critical";
-  if (v === "insufficient_evidence") return "warning";
+  if (v === "insufficient_evidence" || v === "inconclusive_saturated") return "warning";
   return "neutral";
 }
 
@@ -103,6 +105,12 @@ export function describe(e: EventRow): string {
     case "rollback.verified":
     case "promotion.verified":
       return `verified: ${p.served_by_expected}/${p.requests} real predictions served by ${p.expected}`;
+    case "release.paused":
+      return `PAUSED: ${p.reason}`;
+    case "rollback.verification_failed":
+      return `rollback verification FAILED: ${p.served_by_expected ?? "?"}/${p.requests ?? "?"} served by ${p.expected ?? "?"}`;
+    case "release.stuck_reverted":
+      return `stuck release reverted to champion (${p.reason ?? "no controller heartbeat"})`;
     case "rollback.duplicate_ignored":
       return "duplicate rollback request ignored (idempotent)";
     case "postmortem.written":
