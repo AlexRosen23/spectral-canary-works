@@ -36,7 +36,7 @@ jobs:
         run: uv run --frozen scw train-fixtures
       - name: model_artifact_v1 contract + schema compatibility
         run: uv run --frozen python scripts/check_contract.py
-      - name: "chaos CLI smoke (scw chaos-replay end to end on one scenario; pytest runs all ten below)"
+      - name: "chaos CLI smoke (scw chaos-replay end to end on one scenario; pytest runs every scenario below)"
         run: uv run --frozen scw chaos-replay --only schema_break
       - name: "tests (unit, API, e2e: release story + determinism, `scw demo` over real HTTP, all chaos scenarios)"
         # pytest-xdist on the runner's 4 cores. Before this, everything ran serially (and the chaos suite and the release
