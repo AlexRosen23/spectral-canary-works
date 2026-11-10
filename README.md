@@ -502,19 +502,22 @@ Latest local run (2026-11-09, this branch rebased on `b27bc04`, Apple M5 Pro und
 it. With that process stopped, it passed on rerun (138 s). Also: **5 web tests passed**, chaos replay
 10/10, ruff and mypy clean, contract check and `make llm-gold` passed. The suite is slow because of three
 end-to-end tests, not the unit tests: replay determinism (186 s), the chaos suite (172 s) and the in-process
-release story (76 s) each drive thousands of simulated requests.
+release story (76 s) each drive thousands of simulated requests. Since then (PR #7) the HTTP test binds a free port, so an orphaned
+server can't fail it again. The in-process story and its determinism replay are one test whose two runs execute in
+parallel processes. The HTTP test now drives `scw demo` itself. Each chaos scenario is its own test.
 
 **GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on
-pull requests and manual dispatch, plus a relative LLM gate on pull requests that touch the LLM lane:
+pull requests and manual dispatch. A separate workflow, `llm-gate.yml`, runs the relative LLM gate only on pull
+requests that touch the LLM lane:
 
 | job | what it checks |
 |---|---|
-| `python` | ruff, mypy, fixture training with hash checks, contract check, pytest, chaos replay, in-process demo |
+| `python` | ruff, mypy, fixture training with hash checks, contract check, `scw chaos-replay` on one scenario (CLI smoke), then pytest on 4 workers: unit and API tests, the release story with its determinism replay (two runs in parallel processes), `scw demo` over real HTTP, and every chaos scenario as its own test |
 | `security` | pip-audit on the locked dependencies, gitleaks over the full history, npm audit, Trivy filesystem scan |
 | `web` | TypeScript typecheck, unit tests, production build |
 | `image` | Docker build (which retrains and re-verifies hashes on Linux), container smoke test, Trivy image scan |
 | `iac` | OpenTofu `fmt` + `validate` (no plan, no apply, no credentials) |
-| `llm-gate` | **relative** promptfoo gate, on PRs that touch `configs/llm/`, `evals/triage/`, the LLM code, `scripts/llm_gate_*`, the Makefile or the workflow (a `changes` job with `dorny/paths-filter` decides, so the Ollama service container, pinned by digest, starts only then), and on manual dispatch. It checks out the PR base next to the head, runs the 150-case suite for both on the same runner, and fails if the head's pass rate is more than 2.2 points below the base's (the policy's 0.05 escalation-recall margin × 66/150 must-escalate cases). The log shows both pass rates. Recorded on PR #6: base = head on each runner (127/150 on one CPU, 136/150 on another), PASS; the regressed `triage-p3` as head on a third runner: 127 → 104/150, FAIL. 26–41 min. An absolute threshold can't work here: the 90% one was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). |
+| `llm-gate` | **relative** promptfoo gate, in its own workflow (`llm-gate.yml`), on PRs that touch `configs/llm/`, `evals/triage/`, the LLM code, `scripts/llm_gate_*` or that workflow (a native `pull_request.paths` filter, so the Ollama service container, pinned by digest, starts only then), and on manual dispatch (`gh workflow run llm-gate --ref <branch>`). It checks out the PR base next to the head, runs the 150-case suite for both on the same runner, and fails if the head's pass rate is more than 2.2 points below the base's (the policy's 0.05 escalation-recall margin × 66/150 must-escalate cases). The log shows both pass rates. Recorded on PR #6: base = head on each runner (127/150 on one CPU, 136/150 on another), PASS; the regressed `triage-p3` as head on a third runner: 127 → 104/150, FAIL. 26–41 min. An absolute threshold can't work here: the 90% one was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). |
 
 The workflow file had never been valid YAML, so before 2026-11-09 it had never run (see
 [How it was built](#how-it-was-built)). Its first real runs, on
@@ -522,12 +525,20 @@ The workflow file had never been valid YAML, so before 2026-11-09 it had never r
 start. They caught real problems in `security` (pip-audit's input, then Trivy misconfigurations) and in `image`
 (Debian 12 CVEs), all fixed in that PR (see the problems table above). PR #4's checks show the current result.
 
-**Duration:** the `python` job is the long one. On a GitHub-hosted runner it took 20.6 minutes in its first run:
-15 min of pytest, 3 min of chaos replay, 1.8 min of the in-process demo. The repository is public, and standard
-GitHub-hosted runners are free for public repositories, so this costs time, not money. CI runs on pull requests
-and manual dispatch only. In run
-[42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563) the `python` job took 21 min
-and the five PR jobs together about 24 runner-minutes.
+**Duration.** The repository is public, and standard GitHub-hosted runners are free for public repositories, so CI
+costs time, not money (it does not draw on the account's private-repo minutes). CI runs on pull requests and manual
+dispatch only.
+
+- Before ([run 42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563), PR #4):
+  the `python` job took 21 min and ran everything serially on one of the runner's 4 cores. It also ran the chaos
+  suite and the release story twice, once in pytest and once through the CLI. The five PR jobs used about 24
+  runner-minutes, and on PR #6 an LLM-lane change added a 28–37 min `llm-gate` run. That gate also fired on any
+  `Makefile` or `ci.yml` edit.
+- After (PR #7): see the measured numbers on PR #7. The duplicate stories are gone, the rest runs on 4 pytest-xdist
+  workers, and `llm-gate` runs only when the LLM lane changes.
+- Why it is CPU-bound: a cProfile of one in-process release story (16,400 requests) spends about 90% of its time
+  in scikit-learn single-row inference. The calibrated v2/v3 models are 3-fold ensembles, so each prediction runs the
+  preprocessing pipeline three times, and joblib's per-call dispatch is about 38% of that.
 
 No job needs a secret.
 

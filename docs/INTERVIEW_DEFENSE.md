@@ -81,7 +81,7 @@ against champion on that traffic. Chaos `distribution_shift` shows PSI "major" w
 A seeded generator with a committed dataset hash; configs hashed into manifests; the threshold chosen on
 validation only; test-prediction hashes re-checked at gate time *and* inside the Linux Docker build (the
 same hashes as macOS); a hash-chained append-only event log; and a policy SHA-256 on every release event.
-`test_replay_is_deterministic` replays the full story twice and compares every decision and every piece of
+`test_release_story_passes_and_replays_deterministically` replays the full story twice and compares every decision and every piece of
 labeled evidence.
 
 **15. What would you not claim from this project?**

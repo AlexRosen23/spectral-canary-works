@@ -164,11 +164,19 @@ POLICY_OVERRIDES: dict[str, dict[str, Any]] = {
 }
 
 
+def scenario_names() -> list[str]:
+    """Every chaos scenario, in the order `scw chaos-replay` runs them."""
+    return [*CHAOS_SCENARIOS, "restart_recovery", "promotion_race"]
+
+
 def run_chaos(paths: StatePaths, only: list[str] | None = None) -> dict[str, Any]:
+    names = scenario_names()
+    unknown = sorted(set(only or []) - set(names))
+    if unknown:  # a typo must not turn into "0/0 passed" and exit code 0
+        raise ValueError(f"unknown chaos scenario(s) {unknown}; known: {names}")
     root = new_run_dir(paths, "chaos")
     started = time.time()
     out = []
-    names = [*CHAOS_SCENARIOS, "restart_recovery", "promotion_race"]
     for name in names:
         if only and name not in only:
             continue
