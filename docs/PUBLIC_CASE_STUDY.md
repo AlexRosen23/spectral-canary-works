@@ -48,8 +48,10 @@ They make up about 3% of offline frauds, so the defect was invisible offline.
 ## Numbers (measured; machine: Apple M5 Pro laptop under a 1-min load average of 13–27 from other work)
 
 - Held-out (synthetic, 8,000 rows / 487 frauds): v2 PR-AUC **0.620** [0.570–0.662], F1 0.598, ECE 0.005.
-- Gateway throughput: about **390 req/s** peak (one process, champion only, c=4), p95 14.9 ms. With a canary:
-  187 req/s at c=4, p95 43.6 ms. The canary costs a paired champion call on purpose.
+- Gateway throughput: about **866 req/s** peak (one process, champion only, c=16, p95 34.1 ms) after a
+  bit-identical compiled single-row scorer, up from 328 req/s on the previous sklearn path in the same back-to-back
+  A/B (load average 6–9). With a canary: 599 req/s at c=4, p95 9.5 ms (was 192 req/s, p95 44.6 ms). The canary
+  costs a paired champion call on purpose.
 - SLOs at concurrency ≤ 16: availability ≥ 99.5% and p95 ≤ 250 ms were **met in 6/6 cells**, with 0 dropped
   telemetry rows.
 - Reproducibility: the Linux Docker build retrains every model and reproduces the macOS dataset hash and
@@ -67,7 +69,7 @@ client, React + TypeScript (Vite), Docker, OpenTofu, Grafana.
   back a regressed model that had passed offline checks (65 vs 83 of 112 labeled frauds caught, p = 0.0015),
   verified recovery with 50/50 live predictions, and generated the postmortem from a hash-chained audit log.
 - Load-tested and fault-injected the inference gateway: 11/11 seeded chaos scenarios (timeouts, partial outages, gateway saturation,
-  tampered artifacts, crash recovery, concurrent operators), and about 390 req/s on one CPU process with p95
-  ≤ 250 ms SLOs met at concurrency ≤ 16. The tests surfaced and fixed a clustered-sample statistics bug that
+  tampered artifacts, crash recovery, concurrent operators), and about 866 req/s on one CPU process (2.6× the
+  sklearn path, with bit-identical scores) with p95 ≤ 250 ms SLOs met at concurrency ≤ 16. The tests surfaced and fixed a clustered-sample statistics bug that
   caused a false rollback. Packaged with non-root Docker, Prometheus/Grafana and OpenTofu (cloud path
   validated, not deployed).

@@ -114,7 +114,8 @@ rollbacks it drives are real executions of this code.
 | Restart recovery, stuck-release revert, approve-vs-rollback race | Working | `make chaos-replay`: `restart_recovery`, `promotion_race` |
 | Seeded chaos suite: 11 failure scenarios with expected outcomes | Working | `make chaos-replay`: 11/11 in a clean state directory on the merged code (2026-11-09 23:36 CST, 3 min 8 s); in CI each scenario is its own pytest test |
 | Feature drift (PSI) and score drift (Jensen–Shannon) | Working (alert only, by design) | chaos `distribution_shift`; `/v1/drift` |
-| HTTP load test with SLOs | Working (one loaded laptop) | `make loadtest`; [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) (2026-11-09, commit `f015610`) |
+| HTTP load test with SLOs | Working (one loaded laptop) | `make loadtest`; [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) (2026-11-09, A/B at commit `4a930db`) |
+| Bit-identical compiled single-row scorer (no retraining) | Working | [`fastscore.py`](src/spectral_canary/fastscore.py); `tests/test_fastscore.py` serves all 8,000 test rows bit-identically; self-check at load, sklearn fallback |
 | Control-room UI (release track, traffic, quality, incident replay, drift, compare, postmortem, registry, reproducibility) | Working, local | renders only recorded API data; 7 web unit tests (incl. a paused canary and a saturation pause); `npm run build` |
 | Prometheus metrics, SSE event stream, redacted JSON logs, trace IDs | Working | `/metrics` checked in CI's container smoke test |
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
@@ -379,18 +380,25 @@ instead of rolling back, keeps every response at HTTP 200 and then resumes; its 
 
 ### Load test
 
-Source: [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md), run `loadtest-20261109-001009`, commit
-`f015610`. Machine: Apple M5 Pro, 18 cores, 48 GB, **1-minute load average 12.7–27.5 from other work**. One
-uvicorn process; closed-loop clients; simulated payloads.
+Source: [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md). Latest: an A/B of the single-row scoring path at
+commit `4a930db`, back to back on one machine (Apple M5 Pro, 18 cores, 48 GB, **1-minute load average 6.3–9.0 from
+other work**), one uvicorn process, closed-loop clients, simulated payloads. "Before" is the previous sklearn path
+(`SCW_FAST_SCORING=0`); "after" is the compiled scorer, whose scores are bit-identical to sklearn's.
 
-| SLO (concurrency ≤ 16, this machine) | objective | result |
+| | before (sklearn per row) | after (compiled, bit-identical) |
 |---|---|---|
-| availability | ≥ 99.5% | met in 6/6 cells (100%) |
-| client p95 latency | ≤ 250 ms | met in 6/6 cells (worst 174.5 ms) |
-| telemetry completeness | 0 dropped rows | met in 6/6 cells |
+| peak throughput, champion only | 328 rps (c=4) | **866 rps** (c=16) |
+| canary mode, c=4 | 192 rps, p95 44.6 ms | **599 rps**, p95 9.5 ms |
+| champion c=16 p95 / availability | 213.9 ms / 99.34% | **34.1 ms / 100%** |
+| SLO cells met (concurrency ≤ 16) | 4/6 | **6/6** |
+| healthy v2 canary at c=16 and c=32 | rolled back (timeouts from saturation, finding 5) | 8 and 11 healthy windows, no rollback |
+| in-process release story (16,500 requests) | 96.3 s | **8.2 s** (same outcomes) |
 
-Peak throughput was 390.9 rps (champion only, c=4). The canary costs about 2× per candidate request, because
-of the paired champion call. These are relative numbers from a loaded laptop, not capacity planning figures.
+Single-row model call p50: v1 2.4 ms → 37 µs, v2 5.6 ms → 0.33 ms
+([bench JSON](docs/evidence/perf/bench-scoring-20261110.json)). The earlier baseline run (`f015610`, load 12.7–27.5)
+met its SLOs in 6/6 cells with a 391 rps peak; the busier machine during this A/B makes its own "before" column
+lower, so compare the columns with each other. The canary still costs about 2× per candidate request, because of
+the paired champion call. These are relative numbers from a loaded laptop, not capacity planning figures.
 
 ### LLM release lane (for AI Engineer reviewers)
 
@@ -555,9 +563,11 @@ dispatch only.
   merged after it, and 6 min 39 s on `main` at `661003f`
   ([run 42775799672](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42775799672), all 5 jobs green,
   about 12 billed runner-minutes with each job rounded up). `llm-gate` now costs 20–37 min only on LLM-lane PRs.
-- Why it is CPU-bound: a cProfile of one in-process release story (16,400 requests) spends about 90% of its time
-  in scikit-learn single-row inference. The calibrated v2/v3 models are 3-fold ensembles, so each prediction runs the
-  preprocessing pipeline three times, and joblib's per-call dispatch is about 38% of that.
+- Why it was CPU-bound: a cProfile of one in-process release story (16,400 requests) spent about 90% of its time
+  in scikit-learn single-row inference. The calibrated v2/v3 models are 3-fold ensembles, so each prediction ran the
+  preprocessing pipeline three times, and joblib's per-call dispatch was about 38% of that. The compiled scorer
+  ([`fastscore.py`](src/spectral_canary/fastscore.py), bit-identical) cut that story from 72–96 s to 8–14 s on the
+  same machine; scoring is now about a third of the remaining time.
 
 No job needs a secret.
 
