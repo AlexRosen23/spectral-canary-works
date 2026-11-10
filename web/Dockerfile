@@ -11,5 +11,7 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /web/dist /usr/share/nginx/html
+# The base image already runs as nginx (uid 101); say so explicitly so the runtime user is part of this file.
+USER 101:101
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1

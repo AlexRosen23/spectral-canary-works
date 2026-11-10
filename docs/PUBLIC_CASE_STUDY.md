@@ -11,7 +11,7 @@
 | Docker stack (gateway, UI, simulated traffic, Prometheus, Grafana) | **local Docker**, brought up and torn down cleanly |
 | OpenTofu `infra/local` | **applied and destroyed** against local Docker |
 | OpenTofu `infra/aws` | **implemented, validated, NOT provisioned**: $0 incurred |
-| GitHub Actions CI | **defined, not enabled** (owner decision); the same checks run locally with `make ci` |
+| GitHub Actions CI | **enabled** 2026-11-09: 5 jobs on every pull request; the same checks run locally with `make ci` |
 | traffic | **simulated** (seeded) and labeled as such everywhere; data is synthetic |
 
 ## The problem

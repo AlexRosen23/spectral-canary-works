@@ -2,8 +2,9 @@
 
 ## Incurred to date: **US$0.00**
 
-Nothing in this repository has been deployed to any cloud account. GitHub Actions is disabled on the repo,
-so CI minutes used are 0 as well. Everything verified so far ran on the owner's Mac (native and Docker/OrbStack).
+Nothing in this repository has been deployed to any cloud account. GitHub Actions was enabled on
+2026-11-09 and runs on pull requests and manual dispatch only. The repository is public, and standard
+GitHub-hosted runners are free for public repositories, so CI costs nothing either. Everything verified so far ran on the owner's Mac (native and Docker/OrbStack).
 
 ## Estimated cost of the optional AWS path (`infra/aws`, NOT PROVISIONED)
 
@@ -38,6 +39,7 @@ Free-tier eligibility (if the account qualifies) could reduce the EC2 line. Don'
 | App Runner, 0.25 vCPU / 0.5 GB | ~2.6 idle + vCPU while active | cheapest when idle; fewer network controls; a reasonable alternative |
 | EKS | ≥ 73 control plane + nodes | not warranted (ADR-2) |
 | Azure Container Apps (consumption) | ~0 idle within the free grant | no Azure tooling on this machine; equally valid |
+| Same EC2 path with **no public IP**: private subnet, interface endpoints for ECR API, ECR DKR, SSM, SSM Messages and EC2 Messages (5 × 730 h × ~$0.01/h ≈ 36.5) + a free S3 gateway endpoint, egress limited to the VPC CIDR, operator access by SSM port forwarding | ~43 (EC2 6.13 + EBS 0.64 + ECR 0.15 + endpoints ~36.5; no IPv4 charge) | about 4× the cost for a demo VM; the chosen path accepts a public IP with inbound limited to one CIDR (see `SECURITY_AND_SECRETS.md`, "Accepted risks") |
 
 ## Local performance/cost trade-offs (measured)
 
