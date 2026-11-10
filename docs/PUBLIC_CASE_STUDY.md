@@ -6,7 +6,7 @@
 
 | part | status |
 |---|---|
-| 4 trained models, gateway, registry, release controller, guardrails, rollback | **live-local**: runs natively on macOS; 49 automated tests + 10 chaos scenarios pass |
+| 4 trained models, gateway, registry, release controller, guardrails, rollback | **live-local**: runs natively on macOS; 89 automated tests + 11 chaos scenarios pass |
 | control-room UI | **live-local**, rendering only recorded data |
 | Docker stack (gateway, UI, simulated traffic, Prometheus, Grafana) | **local Docker**, brought up and torn down cleanly |
 | OpenTofu `infra/local` | **applied and destroyed** against local Docker |
@@ -66,7 +66,7 @@ client, React + TypeScript (Vite), Docker, OpenTofu, Grafana.
   shadow scoring, a 10% sticky canary and paired McNemar guardrails. In a recorded run it automatically rolled
   back a regressed model that had passed offline checks (65 vs 83 of 112 labeled frauds caught, p = 0.0015),
   verified recovery with 50/50 live predictions, and generated the postmortem from a hash-chained audit log.
-- Load-tested and fault-injected the inference gateway: 10/10 seeded chaos scenarios (timeouts, partial outages,
+- Load-tested and fault-injected the inference gateway: 11/11 seeded chaos scenarios (timeouts, partial outages, gateway saturation,
   tampered artifacts, crash recovery, concurrent operators), and about 390 req/s on one CPU process with p95
   ≤ 250 ms SLOs met at concurrency ≤ 16. The tests surfaced and fixed a clustered-sample statistics bug that
   caused a false rollback. Packaged with non-root Docker, Prometheus/Grafana and OpenTofu (cloud path
