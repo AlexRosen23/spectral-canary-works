@@ -17,11 +17,12 @@ type LineProps = {
   cursor?: number | null;
   bands?: { from: number; to: number; label: string }[];
   caption?: string;
+  empty?: string; // shown instead of the plot when there are no buckets
 };
 
 const W = 640;
 
-export function LineChart({ title, series, xLabels, yFormat, yMax, height = 180, markers = [], cursor, bands = [], caption }: LineProps) {
+export function LineChart({ title, series, xLabels, yFormat, yMax, height = 180, markers = [], cursor, bands = [], caption, empty = "No recorded traffic yet." }: LineProps) {
   const [hover, setHover] = useState<number | null>(null);
   const ref = useRef<SVGSVGElement>(null);
   const [showTable, setShowTable] = useState(false);
@@ -89,7 +90,7 @@ export function LineChart({ title, series, xLabels, yFormat, yMax, height = 180,
           </table>
         </div>
       ) : n === 0 ? (
-        <div className="empty">No recorded traffic yet.</div>
+        <div className="empty">{empty}</div>
       ) : (
         <svg ref={ref} viewBox={`0 0 ${W} ${height}`} role="img" aria-label={title} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
           {bands.map((b) => (

@@ -551,13 +551,21 @@ class Store:
             return int(c.execute("SELECT COALESCE(MAX(seq), 0) FROM requests").fetchone()[0])
 
     def requests_since(
-        self, start_seq: int, release_id: str | None = None, with_labels: bool = True
+        self,
+        start_seq: int,
+        release_id: str | None = None,
+        with_labels: bool = True,
+        labels_as_of: float | None = None,
     ) -> list[dict[str, Any]]:
-        q = (
-            "SELECT r.*, f.label AS label FROM requests r LEFT JOIN feedback f ON f.request_id = r.request_id"
-            " WHERE r.seq > ?"
-        )
-        args: list[Any] = [start_seq]
+        """Requests after ``start_seq`` with their label, if one has arrived (``labels_as_of``: only labels that had
+        arrived by that time, so a report generated later still shows what was known when a decision was made)."""
+        args: list[Any] = []
+        join = "LEFT JOIN feedback f ON f.request_id = r.request_id"
+        if labels_as_of is not None:
+            join += " AND f.ts <= ?"
+            args.append(labels_as_of)
+        q = f"SELECT r.*, f.label AS label FROM requests r {join} WHERE r.seq > ?"
+        args.append(start_seq)
         if release_id is not None:
             q += " AND r.release_id = ?"
             args.append(release_id)

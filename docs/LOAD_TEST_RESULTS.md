@@ -60,7 +60,8 @@ timeout, which returned a 503 with fail-closed semantics rather than a fabricate
    own calls were at 161–196 ms). Some candidate calls crossed the 500 ms timeout, the candidate error rate
    reached 2.9–6.4% (> the 2% budget), and the controller **rolled back a healthy v2**. The behavior is
    fail-safe (removing the canary also removes its extra paired-call load), but the postmortem would blame the
-   model for a capacity problem. **Open issue / recommended fix:** a saturation-aware guardrail that, when
+   model for a capacity problem. **Status: fixed in code on 2026-11-09, verified by fault injection (chaos
+   `gateway_saturation` and four tests), load test not rerun yet.** The fix as recommended: a saturation-aware guardrail that, when
    the champion lane is also over its latency budget in the same window, records `inconclusive: gateway
    saturated` and **pauses** instead of rolling back.
 6. **Finding (fixed): request-level statistics on clustered traffic.** The first load test run

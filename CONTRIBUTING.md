@@ -63,9 +63,9 @@ outgoing commits.
 ## CI and deployment status
 
 - GitHub Actions is **enabled** (owner decision, 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on every
-  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). The `llm-gate` job runs on pull
-  requests that touch the LLM lane (prompts, bundles, policy, gold set, LLM code, `scripts/llm_gate_*`, the Makefile
-  or the workflow) and on manual dispatch. It is **relative**: it scores the PR base and the PR head with the same
+  pull request and on manual dispatch (`gh workflow run ci --ref <branch>`). The LLM gate is its own workflow,
+  `.github/workflows/llm-gate.yml`: it runs on pull requests that touch the LLM lane (prompts, bundles, policy, gold
+  set, LLM code, `scripts/llm_gate_*` or that workflow) and on manual dispatch (`gh workflow run llm-gate`). It is **relative**: it scores the PR base and the PR head with the same
   promptfoo suite on the same runner and fails when the head is more than 2.2 pass-rate points below the base (the
   policy's 0.05 escalation-recall margin over 66 of 150 must-escalate cases). No absolute threshold: the Metal-calibrated
   90% doesn't hold on the runner's CPU backend (`docs/LLM_RELEASE_LANE.md`). The log and step summary show both pass

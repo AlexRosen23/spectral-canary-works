@@ -96,6 +96,7 @@ button.link { background: none; border: none; color: var(--series-1); padding: 0
 .reason { padding: 8px 10px; border-radius: 6px; border-left: 3px solid var(--line); background: var(--surface-2); margin-bottom: 8px; }
 .reason.critical { border-left-color: var(--critical); }
 .reason.good { border-left-color: var(--good); }
+.reason.warning { border-left-color: var(--warning); }
 .gate summary { cursor: pointer; color: var(--text-secondary); margin: 4px 0; }
 
 .chart { margin: 0 0 12px; position: relative; }

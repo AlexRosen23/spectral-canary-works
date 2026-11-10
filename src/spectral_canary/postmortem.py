@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .monitor import one_per_key
 from .store import Store
 
 
@@ -31,10 +32,19 @@ def build_postmortem(store: Store, release_id: str) -> dict[str, Any]:
             None,
         )
     verify = next((e for e in events if e["kind"] in ("rollback.verified", "rollback.verification_failed")), None)
-    reqs = store.requests_since(0, release_id)
+    # Labels keep arriving after a rollback (delayed feedback). Count only those known when it happened, so the impact
+    # matches the decision and regenerating the report later gives the same numbers.
+    as_of = rb["ts"] if rb else None
+    reqs = store.requests_since(0, release_id, labels_as_of=as_of)
     cand_served = [r for r in reqs if r["arm"] == "candidate" and r.get("shadow_status") == "ok"]
     labeled_pos = [r for r in cand_served if r.get("label") == 1]
     missed_extra = sum(1 for r in labeled_pos if r["decision"] == 0 and r.get("champion_decision") == 1)
+    caught_extra = sum(1 for r in labeled_pos if r["decision"] == 1 and r.get("champion_decision") == 0)
+    # The guardrail counts one labeled fraud per card (repeat requests from one card are not independent), so the
+    # impact section reports cards too, with both directions of disagreement, to match the detection evidence.
+    cards = one_per_key([r for r in labeled_pos if r.get("champion_decision") is not None])
+    cards_missed = sum(1 for r in cards if r["decision"] == 0 and r["champion_decision"] == 1)
+    cards_caught = sum(1 for r in cards if r["decision"] == 1 and r["champion_decision"] == 0)
     simulated_share = (sum(r["simulated"] for r in reqs) / len(reqs)) if reqs else 0.0
     return {
         "release": {
@@ -50,7 +60,12 @@ def build_postmortem(store: Store, release_id: str) -> dict[str, Any]:
             "requests_served_by_candidate": len(cand_served),
             "labeled_frauds_served_by_candidate": len(labeled_pos),
             "frauds_missed_by_candidate_that_champion_would_have_caught": missed_extra,
+            "frauds_caught_by_candidate_that_champion_would_have_missed": caught_extra,
+            "labeled_fraud_cards_paired": len(cards),
+            "cards_missed_by_candidate_only": cards_missed,
+            "cards_missed_by_champion_only": cards_caught,
             "simulated_traffic_share": round(simulated_share, 4),
+            "labels_as_of": as_of,
         },
         "timeline": [
             {
@@ -62,10 +77,11 @@ def build_postmortem(store: Store, release_id: str) -> dict[str, Any]:
                 "summary": _summary(e),
             }
             for e in events
+            if e["kind"] != "postmortem.written"  # the report's own write event (present when regenerated)
         ],
         "event_hashes": {
             "first": events[0]["hash"] if events else None,
-            "last": events[-1]["hash"] if events else None,
+            "last": next((e["hash"] for e in reversed(events) if e["kind"] != "postmortem.written"), None),
         },
     }
 
@@ -123,12 +139,26 @@ def render_markdown(pm: dict[str, Any]) -> str:
         "",
         "## Impact (measured from request telemetry)",
         "",
+        *(
+            [
+                f"_Labels as known at the rollback ({_ts(imp['labels_as_of'])}); "
+                "later-arriving labels are not counted._",
+                "",
+            ]
+            if imp.get("labels_as_of")
+            else []
+        ),
         f"- Requests in release: {imp['requests_in_release']}",
         f"- Served by the candidate: {imp['requests_served_by_candidate']}",
-        f"- Labeled frauds served by the candidate (labels delayed; some never arrive): "
-        f"{imp['labeled_frauds_served_by_candidate']}",
-        f"- Frauds the candidate missed that the champion would have caught: "
-        f"{imp['frauds_missed_by_candidate_that_champion_would_have_caught']}",
+        f"- Labeled fraud requests served by the candidate (labels delayed; some never arrive): "
+        f"{imp['labeled_frauds_served_by_candidate']}, from {imp['labeled_fraud_cards_paired']} distinct cards",
+        f"- Per card (the unit the guardrail tests): the candidate missed {imp['cards_missed_by_candidate_only']} "
+        f"frauds the champion would have caught, and caught {imp['cards_missed_by_champion_only']} the champion "
+        f"would have missed; net {imp['cards_missed_by_candidate_only'] - imp['cards_missed_by_champion_only']} "
+        "fewer frauds caught",
+        "- Per request (repeat cards counted each time): "
+        f"{imp['frauds_missed_by_candidate_that_champion_would_have_caught']} missed vs "
+        f"{imp['frauds_caught_by_candidate_that_champion_would_have_missed']} extra caught",
         "",
         "## Detection evidence",
         "",

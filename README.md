@@ -89,8 +89,8 @@ v3 was trained on a label snapshot taken before chargebacks matured on high-valu
 transactions. That segment holds about 3% of test frauds, so offline v3 sits inside every margin. Under the
 simulated surge the segment holds about a quarter of the frauds, and the canary rolled v3 back on paired
 evidence: 65 vs 83 of 112 labeled frauds, p = 0.0015. The project also records where the answer stops being
-yes. The guardrail can't yet tell a broken model from a saturated gateway (see
-[Limitations](#limitations-and-whats-next)).
+yes. When the gateway itself is saturated, timeouts are not evidence against the model, so the guardrail
+pauses instead of rolling back (see [Limitations](#limitations-and-whats-next)).
 
 The defect is constructed, and the data is synthetic. Synthetic data with a known label mechanism is what lets
 the simulation deliver delayed labels at all, which a static public benchmark can't do. The cost is external
@@ -112,10 +112,10 @@ rollbacks it drives are real executions of this code.
 | Atomic, idempotent, verified rollback + generated postmortem | Working | `tests/test_e2e.py` (in-process and over real HTTP); [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md) |
 | Promotion with separation of duties (creator can't approve) | Working | recorded demo (self-approval refused with 403); API tests |
 | Restart recovery, stuck-release revert, approve-vs-rollback race | Working | `make chaos-replay`: `restart_recovery`, `promotion_race` |
-| Seeded chaos suite: 10 failure scenarios with expected outcomes | Working | `make chaos-replay`: 10/10 (rerun 2026-11-09) |
+| Seeded chaos suite: 11 failure scenarios with expected outcomes | Working | `make chaos-replay`: 10/10 (rerun 2026-11-09); the 11th, `gateway_saturation`, added later the same day, passed with `latency_spike` and `candidate_timeout` |
 | Feature drift (PSI) and score drift (Jensen–Shannon) | Working (alert only, by design) | chaos `distribution_shift`; `/v1/drift` |
 | HTTP load test with SLOs | Working (one loaded laptop) | `make loadtest`; [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) (2026-11-09, commit `f015610`) |
-| Control-room UI (release track, traffic, quality, incident replay, drift, compare, postmortem, registry, reproducibility) | Working, local | renders only recorded API data; 5 web unit tests; `npm run build` |
+| Control-room UI (release track, traffic, quality, incident replay, drift, compare, postmortem, registry, reproducibility) | Working, local | renders only recorded API data; 7 web unit tests (incl. a paused canary and a saturation pause); `npm run build` |
 | Prometheus metrics, SSE event stream, redacted JSON logs, trace IDs | Working | `/metrics` checked in CI's container smoke test |
 | Docker image (non-root, read-only root filesystem) + compose stack with Prometheus and Grafana | Working, local Docker | CI `image` job builds, smoke-tests and Trivy-scans it; `make up` / `make down` verified during the build (2026-11-09) |
 | OpenTofu `infra/local` (Docker provider) | Working, local | applied and destroyed against local Docker during the build; `fmt` + `validate` in CI |
@@ -129,7 +129,7 @@ rollbacks it drives are real executions of this code.
 | **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so CI gates on base vs head on one runner instead (`make llm-gate-relative`, see [Testing and CI](#testing-and-ci)) |
 | **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
 | LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
-| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Not built | open finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
+| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Working (fault-injected; load test not rerun) | chaos `gateway_saturation`; `test_timeouts_under_saturation_are_inconclusive_not_a_breach` and 3 related tests; closes finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
 | Multi-replica controller, Postgres registry, sequential testing (mSPRT), real identity provider | Not built | described as upgrades in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DECISIONS.md) |
 
 ## Quick start
@@ -158,7 +158,7 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | command | what it does |
 |---|---|
 | `make test` | all Python tests, including end-to-end failure→rollback in-process **and** over real HTTP |
-| `make chaos-replay` | 10 seeded failure scenarios with expected outcomes |
+| `make chaos-replay` | 11 seeded failure scenarios with expected outcomes |
 | `make verify` | re-hash every artifact, check manifest signatures and the audit hash chain |
 | `make loadtest` | real HTTP load test on a dedicated gateway (:5130); raw per-request results saved |
 | `make serve` / `make web` | gateway on :5120 / Vite dev UI on :5121 (for UI work) |
@@ -307,12 +307,14 @@ The full records are in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DEC
 | problem | cause | fix |
 |---|---|---|
 | Single-row inference ~95 ms p50 instead of ~5 ms | OpenMP thread pools spin-waiting on an oversubscribed machine | cap native threads at 1 (`OMP_NUM_THREADS=1` + `threadpoolctl`, [`serving.limit_native_threads`](src/spectral_canary/serving.py)) |
+| The postmortem's impact (124 labeled frauds, 28 missed) looked like it contradicted its own detection evidence (65 vs 83 of 112) | impact counted requests (repeat cards) and one direction of disagreement, with labels that kept arriving after the rollback | count cards like the guardrail, both directions and the net, with labels as of the rollback (`Store.requests_since(labels_as_of=…)`); a test checks the impact equals the breach's paired evidence and does not change when later labels arrive |
+| Incident replay showed the final verdict ("window 4: breach") while the cursor sat before the canary had started | the evidence panel fell back to the last breach when the cursor wasn't on an evaluation | show the latest evaluation at or before the cursor, or say there is none yet |
 | skops refused to load the gradient-boosting models | two types outside the allowlist | reviewed and allowlisted `functools.partial` and `sklearn.utils.validation.check_array` (ADR-6) |
 | Healthy models blocked or rolled back on latency | absolute budgets on a shared, heavily loaded laptop | latency must exceed the budget **and** 6× the champion measured alongside, best of 3 rounds (`dc464b9`) |
 | A slow candidate could delay champion answers | one shared thread pool | separate bulkhead executors per arm |
 | Container crash-looped after a rebuild | a persisted registry referenced the previous image's artifact hashes | fail closed (readiness 503, gateway stays up) and key the container's registry to the artifact digest (`dc464b9`) |
 | **The c=32 load test rolled back a healthy model** | 146 candidate requests came from only 38 cards, and the flag-rate CI treated them as independent | all guardrail statistics count one observation per card; regression test (`f015610`) |
-| The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | **open**; a saturation-aware pause is proposed |
+| The guardrail blames the model when the gateway is saturated | at c ≥ 16, queueing pushes candidate calls past the 500 ms timeout | when the champion's own model-call p95 is over `saturation_champion_p95_ms` (100 ms) in the same window and every failure over the error budget is a timeout, the window is `inconclusive_saturated` and the release **pauses**: the candidate leaves traffic, no postmortem blames it, and an operator resumes or rolls back. Real errors and quality breaches still roll back |
 | The UI requested a postmortem for a load-test run (404) | it took the newest run, not the newest demo | read the latest demo run (PR #2) |
 | LLM lane: a symmetric pass rate would have shipped both bad candidates | the regressed prompt and the model swap had equal or higher overall escalate accuracy than the champion (61.3% and 69.3% vs 62.0%), because under-escalating wins on the should-not-escalate cases | gate on recall for must-escalate alerts, overall and per segment; the promptfoo suite was rewritten the same way (PR #3) |
 | LLM lane: the first recorded run "failed" | a hypothesis about the 12-case smoke subset was written as an expected outcome | the smoke result became a recorded observation, not an expectation (`6d89c4d`); the rerun (offline suites reused, same bundle hashes) passed with the same four decisions |
@@ -349,10 +351,14 @@ v2 ships because it is non-inferior with better point estimates, not because it 
 ### Rollback evidence
 
 Source: run `demo-20261109-001407` (real HTTP, gateway commit `f015610`, 2026-11-09). The generated
-postmortem is copied verbatim into [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md); each claim
-is in [`resume_evidence/metrics.json`](resume_evidence/metrics.json) with its command and commit.
-Rerun for this README on 2026-11-09 (run `demo-20261109-140904`, real HTTP, 114.6 s): identical outcome and
-numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain intact.
+postmortem is in [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md), regenerated from that run's own event
+log after an audit found its impact section counted requests in one direction (124 labeled frauds, 28 missed), which
+read as if it contradicted the 65 vs 83 of 112 cards that triggered the rollback. It now counts cards as the guardrail
+does, both directions, with labels known at the rollback: 112 cards, 26 missed only by the candidate and 8 only by the
+champion, net 18. Each claim is in [`resume_evidence/metrics.json`](resume_evidence/metrics.json) with its command and
+commit. Rerun for this README on 2026-11-09 (run `demo-20261109-140904`, real HTTP, 114.6 s): identical outcome and
+numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain intact. A clean-state rerun
+(fresh state directory, `make demo` on another port) at 17:46 CST matched again.
 
 | release | outcome | evidence |
 |---|---|---|
@@ -366,6 +372,9 @@ numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain i
 schema break, distribution shift (drift alert, no traffic moved), degraded predictions, latency spike,
 candidate timeout (champion answers with `X-Fallback`), partial outage (fail closed 503), corrupted artifact
 (never becomes champion), repeat rollback (idempotent), restart recovery, and an approve-vs-rollback race.
+The 11th, gateway saturation (champion slowed to 60 ms and every candidate call past the timeout), pauses
+instead of rolling back, keeps every response at HTTP 200 and then resumes; its counterpart `candidate_timeout`
+(same timeouts, fast champion) still rolls back.
 
 ### Load test
 
@@ -437,14 +446,22 @@ Engineer roles) · [`docs/media/walkthrough.webm`](docs/media/walkthrough.webm) 
 
 - **Synthetic data, constructed defect.** The metrics describe this generator, not real fraud. Real fraud
   has adversaries and feedback loops that are not modeled here.
-- **Saturation is misattributed (open).** Under overload the candidate's timeouts trip the error budget and a
-  healthy model is rolled back. That fails safe, but the postmortem blames the model. **Next:** when the
-  champion lane is also over budget in the same window, record `inconclusive: gateway saturated` and pause.
+- **Saturation handling is a threshold, not a capacity model.** Timeouts are attributed to the gateway when the
+  champion's own p95 crosses a fixed 100 ms line in the same window. It is verified by fault injection, not by
+  rerunning the c=16/32 load test, and a candidate that is both broken and unlucky enough to be judged only
+  during an overload is paused rather than rolled back (still out of traffic). **Next:** rerun the load test,
+  and derive the line from the champion's measured baseline instead of a constant.
 - **Repeated testing without alpha-spending.** Guardrails re-test every window at p < 0.01. **Next:** a
   sequential test such as mSPRT.
 - **Single process.** Guardrail window counters live in the API process. Replicas would need them in the shared
   store and one elected controller (ADR-4).
 - **Local controls, not enterprise IAM.** Roles are random bearer tokens with only their hashes stored.
+- **The offline latency check measures on the machine it runs on.** It takes the best of 3 interleaved rounds against
+  the champion, but with no champion (bootstrap) only the absolute 50 ms budget applies. During this project's
+  2026-11-09 audit the Mac was at a load average near 200 from unrelated jobs, and the check failed closed twice:
+  once refusing v2 inside `make chaos-replay` (`degraded_predictions` errored, 9/10), once refusing the bootstrap
+  champion in a test fixture. Both passed on rerun, and it has not happened on a CI runner. **Next:** pin the
+  latency gate to a quiet, dedicated runner, or compare against a recorded baseline for the bootstrap case.
 - **Not deployed.** The AWS path is validated but not provisioned, and $0 has been spent. Provisioning needs
   the owner's approval and an expected cost.
 - **LLM lane: labels and graders.** Labels come from a rule table and graders are code. There is no LLM-as-judge
@@ -498,19 +515,22 @@ Latest local run (2026-11-09, this branch rebased on `b27bc04`, Apple M5 Pro und
 it. With that process stopped, it passed on rerun (138 s). Also: **5 web tests passed**, chaos replay
 10/10, ruff and mypy clean, contract check and `make llm-gold` passed. The suite is slow because of three
 end-to-end tests, not the unit tests: replay determinism (186 s), the chaos suite (172 s) and the in-process
-release story (76 s) each drive thousands of simulated requests.
+release story (76 s) each drive thousands of simulated requests. Since then (PR #7) the HTTP test binds a free port, so an orphaned
+server can't fail it again. The in-process story and its determinism replay are one test whose two runs execute in
+parallel processes. The HTTP test now drives `scw demo` itself. Each chaos scenario is its own test.
 
 **GitHub Actions is enabled** (the owner turned it on on 2026-11-09). `.github/workflows/ci.yml` runs 5 jobs on
-pull requests and manual dispatch, plus a relative LLM gate on pull requests that touch the LLM lane:
+pull requests and manual dispatch. A separate workflow, `llm-gate.yml`, runs the relative LLM gate only on pull
+requests that touch the LLM lane:
 
 | job | what it checks |
 |---|---|
-| `python` | ruff, mypy, fixture training with hash checks, contract check, pytest, chaos replay, in-process demo |
+| `python` | ruff, mypy, fixture training with hash checks, contract check, `scw chaos-replay` on one scenario (CLI smoke), then pytest on 4 workers: unit and API tests, the release story with its determinism replay (two runs in parallel processes), `scw demo` over real HTTP, and every chaos scenario as its own test |
 | `security` | pip-audit on the locked dependencies, gitleaks over the full history, npm audit, Trivy filesystem scan |
 | `web` | TypeScript typecheck, unit tests, production build |
 | `image` | Docker build (which retrains and re-verifies hashes on Linux), container smoke test, Trivy image scan |
 | `iac` | OpenTofu `fmt` + `validate` (no plan, no apply, no credentials) |
-| `llm-gate` | **relative** promptfoo gate, on PRs that touch `configs/llm/`, `evals/triage/`, the LLM code, `scripts/llm_gate_*`, the Makefile or the workflow (a `changes` job with `dorny/paths-filter` decides, so the Ollama service container, pinned by digest, starts only then), and on manual dispatch. It checks out the PR base next to the head, runs the 150-case suite for both on the same runner, and fails if the head's pass rate is more than 2.2 points below the base's (the policy's 0.05 escalation-recall margin × 66/150 must-escalate cases). The log shows both pass rates. Recorded on PR #6: base = head on each runner (127/150 on one CPU, 136/150 on another), PASS; the regressed `triage-p3` as head on a third runner: 127 → 104/150, FAIL. 26–41 min. An absolute threshold can't work here: the 90% one was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). |
+| `llm-gate` | **relative** promptfoo gate, in its own workflow (`llm-gate.yml`), on PRs that touch `configs/llm/`, `evals/triage/`, the LLM code, `scripts/llm_gate_*` or that workflow (a native `pull_request.paths` filter, so the Ollama service container, pinned by digest, starts only then), and on manual dispatch (`gh workflow run llm-gate --ref <branch>`). It checks out the PR base next to the head, runs the 150-case suite for both on the same runner, and fails if the head's pass rate is more than 2.2 points below the base's (the policy's 0.05 escalation-recall margin × 66/150 must-escalate cases). The log shows both pass rates. Recorded on PR #6: base = head on each runner (127/150 on one CPU, 136/150 on another), PASS; the regressed `triage-p3` as head on a third runner: 127 → 104/150, FAIL. 26–41 min. An absolute threshold can't work here: the 90% one was calibrated on Apple Metal, and on the runner's CPU backend the accepted champion scores 84.7% (see [the portability finding](#llm-release-lane-for-ai-engineer-reviewers)). |
 
 The workflow file had never been valid YAML, so before 2026-11-09 it had never run (see
 [How it was built](#how-it-was-built)). Its first real runs, on
@@ -518,12 +538,20 @@ The workflow file had never been valid YAML, so before 2026-11-09 it had never r
 start. They caught real problems in `security` (pip-audit's input, then Trivy misconfigurations) and in `image`
 (Debian 12 CVEs), all fixed in that PR (see the problems table above). PR #4's checks show the current result.
 
-**Duration:** the `python` job is the long one. On a GitHub-hosted runner it took 20.6 minutes in its first run:
-15 min of pytest, 3 min of chaos replay, 1.8 min of the in-process demo. The repository is public, and standard
-GitHub-hosted runners are free for public repositories, so this costs time, not money. CI runs on pull requests
-and manual dispatch only. In run
-[42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563) the `python` job took 21 min
-and the five PR jobs together about 24 runner-minutes.
+**Duration.** The repository is public, and standard GitHub-hosted runners are free for public repositories, so CI
+costs time, not money (it does not draw on the account's private-repo minutes). CI runs on pull requests and manual
+dispatch only.
+
+- Before ([run 42692611563](https://github.com/AlexRosen23/spectral-canary-works/actions/runs/42692611563), PR #4):
+  the `python` job took 21 min and ran everything serially on one of the runner's 4 cores. It also ran the chaos
+  suite and the release story twice, once in pytest and once through the CLI. The five PR jobs used about 24
+  runner-minutes, and on PR #6 an LLM-lane change added a 28–37 min `llm-gate` run. That gate also fired on any
+  `Makefile` or `ci.yml` edit.
+- After (PR #7): see the measured numbers on PR #7. The duplicate stories are gone, the rest runs on 4 pytest-xdist
+  workers, and `llm-gate` runs only when the LLM lane changes.
+- Why it is CPU-bound: a cProfile of one in-process release story (16,400 requests) spends about 90% of its time
+  in scikit-learn single-row inference. The calibrated v2/v3 models are 3-fold ensembles, so each prediction runs the
+  preprocessing pipeline three times, and joblib's per-call dispatch is about 38% of that.
 
 No job needs a secret.
 

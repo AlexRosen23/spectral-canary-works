@@ -19,6 +19,7 @@ LLM_GATE_THRESHOLD ?= 90
 # 100 * 0.05 * 66/150 = 2.2 pass-rate points below the base: the same 0.05 recall margin, read from the base's
 # configs/llm/release_policy.toml ([offline_gate] max_escalation_recall_drop), with the case counts from the base run.
 LLM_GATE_BASE ?= origin/main
+TEST_WORKERS ?= 4
 
 .PHONY: start setup train-fixtures test test-fast eval serve web demo chaos-replay verify lint typecheck ci \
         loadtest web-build up down clean-state iac-validate contract-check docker-build \
@@ -35,8 +36,8 @@ train-fixtures:   ## generate the seeded dataset and train v1..v4 (skips version
 eval:             ## held-out metrics table for every trained version
 	$(RUN) scw eval
 
-test:             ## full test suite incl. end-to-end failure->rollback scenario
-	$(RUN) pytest
+test:             ## full test suite incl. e2e failure->rollback + every chaos scenario, on $(TEST_WORKERS) cores (pytest-xdist)
+	$(RUN) pytest -n $(TEST_WORKERS) --dist worksteal
 
 test-fast:        ## unit tests only
 	$(RUN) pytest -m "not e2e"
@@ -96,7 +97,7 @@ llm-gate:         ## promptfoo regression suite (pinned 0.125.1) vs local Ollama
 llm-gate-relative: ## base-vs-head promptfoo gate on one machine (LLM_GATE_BASE=<ref>, default origin/main; ~2x llm-gate)
 	LLM_GATE_BASE="$(LLM_GATE_BASE)" PYTHON="$${PYTHON:-$(RUN) python}" ./scripts/llm_gate_relative.sh
 
-ci: lint typecheck train-fixtures contract-check llm-gold test chaos-replay  ## what .github/workflows/ci.yml runs
+ci: lint typecheck train-fixtures contract-check llm-gold test  ## what .github/workflows/ci.yml runs (test includes every chaos scenario)
 	@if [ -d web/node_modules ]; then cd web && npm run typecheck && npm run build; fi
 	@echo "make ci: all checks passed"
 

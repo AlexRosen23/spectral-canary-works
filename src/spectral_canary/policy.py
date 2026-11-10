@@ -40,6 +40,7 @@ class CanaryPolicy(BaseModel):
     max_error_rate: float = 0.02
     latency_p95_budget_ms: float = 50.0
     latency_p95_ratio_vs_champion: float = 6.0
+    saturation_champion_p95_ms: float = 100.0
     max_flag_rate_ratio_drop: float = 0.35
     recall_noninferiority_margin: float = 0.0
     healthy_windows_to_promote: int = 2
