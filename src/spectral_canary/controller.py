@@ -583,13 +583,17 @@ class Controller:
                 self.service.pool.reverify(dep.champion_version)
             except ArtifactError as exc:
                 problems.append(f"champion artifact: {exc}")
-        return {
+        out = {
             "ready": not problems,
             "problems": problems,
             "champion": dep.champion_version,
             "generation": dep.generation,
             "mode": dep.mode,
         }
+        scoring_paths = getattr(self.service.pool, "scoring_paths", None)  # ML model pool only, not LLM bundles
+        if scoring_paths is not None:
+            out["scoring"] = scoring_paths()
+        return out
 
     # -- recovery / housekeeping ----------------------------------------------------------------------------
     def recover(self, actor: str = "controller") -> list[dict[str, Any]]:

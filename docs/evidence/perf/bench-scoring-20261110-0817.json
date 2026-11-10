@@ -1,0 +1,113 @@
+{
+  "machine": "arm64 macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "python": "3.13.16",
+  "omp_num_threads": "1",
+  "load_avg_1m_start": 7.1,
+  "single_row": {
+    "v1-logreg": {
+      "unit": "us",
+      "sklearn": {
+        "p50": 417.5,
+        "p95": 481.6,
+        "p99": 639.5
+      },
+      "compiled": {
+        "p50": 6.9,
+        "p95": 8.1,
+        "p99": 9.3
+      },
+      "speedup_p50": 60.4
+    },
+    "v2-hgb": {
+      "unit": "us",
+      "sklearn": {
+        "p50": 1673.7,
+        "p95": 2027.0,
+        "p99": 2288.7
+      },
+      "compiled": {
+        "p50": 111.0,
+        "p95": 160.8,
+        "p99": 187.9
+      },
+      "speedup_p50": 15.1
+    },
+    "v3-hgb-fresh": {
+      "unit": "us",
+      "sklearn": {
+        "p50": 1638.6,
+        "p95": 1963.9,
+        "p99": 2286.4
+      },
+      "compiled": {
+        "p50": 106.2,
+        "p95": 153.0,
+        "p99": 174.2
+      },
+      "speedup_p50": 15.4
+    },
+    "v4-hgb-segfilter": {
+      "unit": "us",
+      "sklearn": {
+        "p50": 1620.0,
+        "p95": 1864.6,
+        "p99": 2029.1
+      },
+      "compiled": {
+        "p50": 101.6,
+        "p95": 135.5,
+        "p99": 160.9
+      },
+      "speedup_p50": 15.9
+    }
+  },
+  "release_story": {
+    "sklearn": {
+      "seconds": 31.44,
+      "passed": true,
+      "requests": 16500,
+      "scoring_paths": [
+        "disabled (SCW_FAST_SCORING=0)"
+      ],
+      "actual": {
+        "self_approval_refused": true,
+        "A": "promoted",
+        "B": "blocked",
+        "C": "rolled_back",
+        "champion_after": "v2-hgb",
+        "mode_after": "none",
+        "post_rollback_versions": [
+          "v2-hgb"
+        ]
+      },
+      "load_avg_1m": [
+        7.5,
+        7.1
+      ]
+    },
+    "compiled": {
+      "seconds": 3.26,
+      "passed": true,
+      "requests": 16500,
+      "scoring_paths": [
+        "compiled"
+      ],
+      "actual": {
+        "self_approval_refused": true,
+        "A": "promoted",
+        "B": "blocked",
+        "C": "rolled_back",
+        "champion_after": "v2-hgb",
+        "mode_after": "none",
+        "post_rollback_versions": [
+          "v2-hgb"
+        ]
+      },
+      "load_avg_1m": [
+        7.1,
+        6.7
+      ]
+    }
+  },
+  "load_avg_1m_end": 6.7
+}

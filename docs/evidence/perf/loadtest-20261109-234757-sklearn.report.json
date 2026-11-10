@@ -1,0 +1,321 @@
+{
+  "run_id": "loadtest-20261109-234757",
+  "kind": "loadtest",
+  "started_at": 1794289683.180097,
+  "passed": false,
+  "summary": "8 cells; SLO cells passing 4/6",
+  "cells": [
+    {
+      "concurrency": 1,
+      "duration_s": 20.02,
+      "requests": 2398,
+      "throughput_rps": 119.8,
+      "availability": 1.0,
+      "statuses": {
+        "200": 2398
+      },
+      "latency_ms": {
+        "p50": 7.71,
+        "p95": 12.63,
+        "p99": 20.25,
+        "max": 100.51,
+        "mean": 8.33
+      },
+      "served_versions": {
+        "v1-logreg": 2398
+      },
+      "server_cpu_percent_mean": 64.1,
+      "server_cpu_percent_max": 69.5,
+      "server_rss_mb_max": 182.3,
+      "raw": "raw-champion-c1.jsonl",
+      "started_at": 1794289683.180097,
+      "mode": "champion",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 8.97,
+      "load_avg_1m_after": 8.83
+    },
+    {
+      "concurrency": 4,
+      "duration_s": 20.02,
+      "requests": 6568,
+      "throughput_rps": 328.1,
+      "availability": 1.0,
+      "statuses": {
+        "200": 6568
+      },
+      "latency_ms": {
+        "p50": 10.9,
+        "p95": 21.37,
+        "p99": 36.52,
+        "max": 114.54,
+        "mean": 12.17
+      },
+      "served_versions": {
+        "v1-logreg": 6568
+      },
+      "server_cpu_percent_mean": 101.8,
+      "server_cpu_percent_max": 109.6,
+      "server_rss_mb_max": 183.7,
+      "raw": "raw-champion-c4.jsonl",
+      "started_at": 1794289710.7292569,
+      "mode": "champion",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 8.16,
+      "load_avg_1m_after": 7.68
+    },
+    {
+      "concurrency": 16,
+      "duration_s": 20.07,
+      "requests": 5002,
+      "throughput_rps": 249.2,
+      "availability": 0.9934,
+      "statuses": {
+        "200": 4969,
+        "503": 33
+      },
+      "latency_ms": {
+        "p50": 32.27,
+        "p95": 213.89,
+        "p99": 403.93,
+        "max": 639.57,
+        "mean": 60.89
+      },
+      "served_versions": {
+        "v1-logreg": 4969
+      },
+      "server_cpu_percent_mean": 95.6,
+      "server_cpu_percent_max": 122.8,
+      "server_rss_mb_max": 187.2,
+      "raw": "raw-champion-c16.jsonl",
+      "started_at": 1794289735.923531,
+      "mode": "champion",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 7.47,
+      "load_avg_1m_after": 8.21
+    },
+    {
+      "concurrency": 32,
+      "duration_s": 20.12,
+      "requests": 2894,
+      "throughput_rps": 143.8,
+      "availability": 0.96164,
+      "statuses": {
+        "200": 2783,
+        "503": 111
+      },
+      "latency_ms": {
+        "p50": 182.27,
+        "p95": 379.39,
+        "p99": 510.94,
+        "max": 771.65,
+        "mean": 206.71
+      },
+      "served_versions": {
+        "v1-logreg": 2783
+      },
+      "server_cpu_percent_mean": 98.2,
+      "server_cpu_percent_max": 108.3,
+      "server_rss_mb_max": 187.2,
+      "raw": "raw-champion-c32.jsonl",
+      "started_at": 1794289766.3663301,
+      "mode": "champion",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 8.48,
+      "load_avg_1m_after": 8.69
+    },
+    {
+      "concurrency": 1,
+      "duration_s": 20.03,
+      "requests": 2209,
+      "throughput_rps": 110.3,
+      "availability": 1.0,
+      "statuses": {
+        "200": 2209
+      },
+      "latency_ms": {
+        "p50": 8.01,
+        "p95": 17.62,
+        "p99": 23.66,
+        "max": 210.82,
+        "mean": 9.04
+      },
+      "served_versions": {
+        "v1-logreg": 1958,
+        "v2-hgb": 251
+      },
+      "server_cpu_percent_mean": 68.2,
+      "server_cpu_percent_max": 78.9,
+      "server_rss_mb_max": 222.4,
+      "raw": "raw-canary-c1.jsonl",
+      "started_at": 1794289804.43934,
+      "mode": "canary",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 8.57,
+      "load_avg_1m_after": 7.47
+    },
+    {
+      "concurrency": 4,
+      "duration_s": 20.03,
+      "requests": 3843,
+      "throughput_rps": 191.8,
+      "availability": 1.0,
+      "statuses": {
+        "200": 3843
+      },
+      "latency_ms": {
+        "p50": 17.78,
+        "p95": 44.56,
+        "p99": 60.26,
+        "max": 239.46,
+        "mean": 20.8
+      },
+      "served_versions": {
+        "v1-logreg": 3436,
+        "v2-hgb": 407
+      },
+      "server_cpu_percent_mean": 111.6,
+      "server_cpu_percent_max": 115.3,
+      "server_rss_mb_max": 196.6,
+      "raw": "raw-canary-c4.jsonl",
+      "started_at": 1794289838.061883,
+      "mode": "canary",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 6.69,
+      "load_avg_1m_after": 6.27
+    },
+    {
+      "concurrency": 16,
+      "duration_s": 20.09,
+      "requests": 2515,
+      "throughput_rps": 125.2,
+      "availability": 0.99483,
+      "statuses": {
+        "200": 2502,
+        "503": 13
+      },
+      "latency_ms": {
+        "p50": 80.49,
+        "p95": 353.55,
+        "p99": 614.9,
+        "max": 1143.79,
+        "mean": 124.01
+      },
+      "served_versions": {
+        "v1-logreg": 2395,
+        "v2-hgb": 107
+      },
+      "server_cpu_percent_mean": 97.2,
+      "server_cpu_percent_max": 122.0,
+      "server_rss_mb_max": 203.5,
+      "raw": "raw-canary-c16.jsonl",
+      "started_at": 1794289870.4190469,
+      "mode": "canary",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 6.3,
+      "load_avg_1m_after": 8.98
+    },
+    {
+      "concurrency": 32,
+      "duration_s": 20.11,
+      "requests": 3450,
+      "throughput_rps": 171.6,
+      "availability": 0.99217,
+      "statuses": {
+        "200": 3423,
+        "503": 27
+      },
+      "latency_ms": {
+        "p50": 143.11,
+        "p95": 417.96,
+        "p99": 575.51,
+        "max": 916.14,
+        "mean": 182.29
+      },
+      "served_versions": {
+        "v1-logreg": 3166,
+        "v2-hgb": 257
+      },
+      "server_cpu_percent_mean": 114.2,
+      "server_cpu_percent_max": 124.3,
+      "server_rss_mb_max": 208.6,
+      "raw": "raw-canary-c32.jsonl",
+      "started_at": 1794289905.192252,
+      "mode": "canary",
+      "workers": 1,
+      "telemetry_dropped": 0.0,
+      "load_avg_1m_before": 8.44,
+      "load_avg_1m_after": 8.21
+    }
+  ],
+  "slos": {
+    "availability": {
+      "objective": 0.995,
+      "definition": "share of requests answered with HTTP 200"
+    },
+    "latency_p95_ms": {
+      "objective": 250.0,
+      "definition": "client-observed p95 at concurrency <= 16"
+    },
+    "telemetry_drop_rate": {
+      "objective": 0.0,
+      "definition": "request rows dropped by the bounded writer"
+    }
+  },
+  "slo_compliance": [
+    {
+      "cell": "champion-c1",
+      "availability_ok": true,
+      "latency_p95_ok": true,
+      "telemetry_ok": true
+    },
+    {
+      "cell": "champion-c4",
+      "availability_ok": true,
+      "latency_p95_ok": true,
+      "telemetry_ok": true
+    },
+    {
+      "cell": "champion-c16",
+      "availability_ok": false,
+      "latency_p95_ok": true,
+      "telemetry_ok": true
+    },
+    {
+      "cell": "canary-c1",
+      "availability_ok": true,
+      "latency_p95_ok": true,
+      "telemetry_ok": true
+    },
+    {
+      "cell": "canary-c4",
+      "availability_ok": true,
+      "latency_p95_ok": true,
+      "telemetry_ok": true
+    },
+    {
+      "cell": "canary-c16",
+      "availability_ok": false,
+      "latency_p95_ok": false,
+      "telemetry_ok": true
+    }
+  ],
+  "machine": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.13.16",
+    "cpu_count": 18,
+    "ram_gb": 48.0,
+    "cpu": "Apple M5 Pro",
+    "load_avg_1m": 8.21
+  },
+  "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+  "command": "scw loadtest",
+  "traffic": "SIMULATED baseline payloads (seeded); real HTTP, real model inference, real SQLite telemetry"
+}

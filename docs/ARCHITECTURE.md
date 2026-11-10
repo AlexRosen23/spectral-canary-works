@@ -39,6 +39,7 @@
 | `store.py` | SQLite schema with triggers; event hash chain; CAS pointer swap that writes its audit event in the same transaction |
 | `registry.py` | register = validate contract + schema hash + real load + sign; `verify_registry` re-hashes everything |
 | `serving.py` | model pool, deterministic router, shadow/canary execution, timeouts, bulkhead, fault injector (simulated), telemetry writer |
+| `fastscore.py` | single-row scorer built from the verified estimator at load; bit-identical to sklearn `predict_proba` (self-checked at load, falls back to sklearn otherwise; `SCW_FAST_SCORING=0` disables) |
 | `gates.py` | offline gate checks with observed/limit/reason |
 | `monitor.py` | shadow summary, canary window evaluation (flag rate CI, paired McNemar, latency ratio, error budget), PSI drift |
 | `controller.py` | the state machine: propose, stage, shadow, canary, evaluate, approve, pause, rollback, recover, tick |

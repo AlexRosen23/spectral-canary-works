@@ -17,6 +17,7 @@ import random
 import threading
 import time
 import uuid
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
@@ -26,6 +27,7 @@ from typing import Any
 import numpy as np
 
 from . import artifacts as art
+from . import fastscore
 from . import telemetry as tm
 from .paths import StatePaths
 from .policy import ReleasePolicy
@@ -56,8 +58,13 @@ class LoadedModel:
     estimator: Any
     threshold: float
     sha256: str
+    # Bit-identical single-row scorer built at load (fastscore.py); None -> sklearn for every call.
+    fast: Callable[[Sequence[float]], float] | None = field(default=None, compare=False, repr=False)
+    scoring_path: str = "sklearn"
 
     def score(self, X: np.ndarray) -> np.ndarray:
+        if self.fast is not None and X.shape[0] == 1:
+            return np.array([self.fast(X[0].tolist())], dtype=np.float64)
         return self.estimator.predict_proba(X)[:, 1]
 
 
@@ -87,7 +94,17 @@ class ModelPool:
             self.load_failures[version] = str(exc)
             tm.MODEL_LOAD_FAILURES.labels(model_version=version).inc()
             raise
-        m = LoadedModel(version, est, float(rec["manifest"]["threshold"]["value"]), rec["artifact_sha256"])
+        fast, scoring_path = fastscore.build(est)
+        if fast is None:
+            log.info("model %s: single-row scoring via sklearn (%s)", version, scoring_path)
+        m = LoadedModel(
+            version,
+            est,
+            float(rec["manifest"]["threshold"]["value"]),
+            rec["artifact_sha256"],
+            fast=fast,
+            scoring_path=scoring_path,
+        )
         with self._lock:
             self._models.setdefault(version, m)
             self.load_failures.pop(version, None)
@@ -108,6 +125,11 @@ class ModelPool:
     def loaded_versions(self) -> list[str]:
         with self._lock:
             return sorted(self._models)
+
+    def scoring_paths(self) -> dict[str, str]:
+        """Per loaded version: "compiled" (fastscore) or why it scores through sklearn."""
+        with self._lock:
+            return {v: m.scoring_path for v, m in sorted(self._models.items())}
 
 
 # -- simulated faults (test doubles, always labeled) -------------------------------------------------------
