@@ -6,7 +6,7 @@
 
 | part | status |
 |---|---|
-| 4 trained models, gateway, registry, release controller, guardrails, rollback | **live-local**: runs natively on macOS; 89 automated tests + 11 chaos scenarios pass |
+| 4 trained models, gateway, registry, release controller, guardrails, rollback | **live-local**: runs natively on macOS; 99 automated tests + 11 chaos scenarios pass |
 | control-room UI | **live-local**, rendering only recorded data |
 | Docker stack (gateway, UI, simulated traffic, Prometheus, Grafana) | **local Docker**, brought up and torn down cleanly |
 | OpenTofu `infra/local` | **applied and destroyed** against local Docker |
@@ -43,7 +43,9 @@ They make up about 3% of offline frauds, so the defect was invisible offline.
 - **The guardrail used to mistake saturation for a bad model.** Past about 370 requests/s on one Python process,
   candidate calls queue past the 500 ms timeout and trip the error budget. Now, when the champion is slow in the
   same window and the failures are timeouts, the release pauses instead of rolling back (chaos
-  `gateway_saturation`); the load test itself has not been rerun.
+  `gateway_saturation`). A bit-identical compiled scorer later moved the saturation point from about 330 to
+  about 870 requests/s in a same-machine A/B; the two rollbacks that A/B's old path still produced had only
+  timeouts and a slow champion, so the new rule would pause them. A load test of both on merged code is still to do.
 
 ## Numbers (measured; machine: Apple M5 Pro laptop under a 1-min load average of 13–27 from other work)
 

@@ -130,7 +130,7 @@ rollbacks it drives are real executions of this code.
 | **LLM lane:** promptfoo regression gate (`make llm-gate`, threshold 90%) | Working | saved output in [`docs/evidence/llm/promptfoo/`](docs/evidence/llm/promptfoo/) (champion 92.7%, regressed prompt 74.0%, exit 100); rerun locally 2026-11-09: 139/150 (92.7%), identical. On a GitHub CPU runner the same champion scores 84.7%, so CI gates on base vs head on one runner instead (`make llm-gate-relative`, see [Testing and CI](#testing-and-ci)) |
 | **LLM lane:** OpenTelemetry GenAI metrics on `/metrics`, Grafana panels, control-room panel | Working | `test_llm_api_and_genai_metrics`; the recorded run's [`metrics-genai.prom`](docs/evidence/llm/llm-demo-20261109-130256/metrics-genai.prom) |
 | LLM-as-judge or human-calibrated graders, hosted model, human labels | Not built | the lane uses code graders and rule-derived labels by design ([`docs/LLM_RELEASE_LANE.md`](docs/LLM_RELEASE_LANE.md)) |
-| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Working (fault-injected; load test not rerun) | chaos `gateway_saturation`; `test_timeouts_under_saturation_are_inconclusive_not_a_breach` and 3 related tests; closes finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
+| Saturation-aware guardrail (pause instead of rolling back when the gateway itself is overloaded) | Working (fault-injected; load test not rerun on merged code; the scorer A/B's two old-path rollbacks meet its pause condition) | chaos `gateway_saturation`; `test_timeouts_under_saturation_are_inconclusive_not_a_breach` and 3 related tests; closes finding 5 in [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) |
 | Multi-replica controller, Postgres registry, sequential testing (mSPRT), real identity provider | Not built | described as upgrades in [`docs/ARCHITECTURE_DECISIONS.md`](docs/ARCHITECTURE_DECISIONS.md) |
 
 ## Quick start
@@ -381,7 +381,7 @@ instead of rolling back, keeps every response at HTTP 200 and then resumes; its 
 ### Load test
 
 Source: [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md). Latest: an A/B of the single-row scoring path at
-commit `4a930db`, back to back on one machine (Apple M5 Pro, 18 cores, 48 GB, **1-minute load average 6.3–9.0 from
+commit `4a930db` (the scorer on top of PR #7, before #8–#10 merged), back to back on one machine (Apple M5 Pro, 18 cores, 48 GB, **1-minute load average 6.3–9.0 from
 other work**), one uvicorn process, closed-loop clients, simulated payloads. "Before" is the previous sklearn path
 (`SCW_FAST_SCORING=0`); "after" is the compiled scorer, whose scores are bit-identical to sklearn's.
 
@@ -391,13 +391,16 @@ other work**), one uvicorn process, closed-loop clients, simulated payloads. "Be
 | canary mode, c=4 | 192 rps, p95 44.6 ms | **599 rps**, p95 9.5 ms |
 | champion c=16 p95 / availability | 213.9 ms / 99.34% | **34.1 ms / 100%** |
 | SLO cells met (concurrency ≤ 16) | 4/6 | **6/6** |
-| healthy v2 canary at c=16 and c=32 | rolled back (timeouts from saturation, finding 5) | 8 and 11 healthy windows, no rollback |
+| healthy v2 canary at c=16 and c=32 | rolled back (timeouts from saturation, finding 5); with #8 merged these windows would pause instead | 8 and 11 healthy windows, no rollback |
 | in-process release story (16,500 requests) | 96.3 s | **8.2 s** (same outcomes) |
 
 Single-row model call p50: v1 2.4 ms → 37 µs, v2 5.6 ms → 0.33 ms
 ([bench JSON](docs/evidence/perf/bench-scoring-20261110.json)). The earlier baseline run (`f015610`, load 12.7–27.5)
 met its SLOs in 6/6 cells with a 391 rps peak; the busier machine during this A/B makes its own "before" column
-lower, so compare the columns with each other. The canary still costs about 2× per candidate request, because of
+lower, so compare the columns with each other. The scorer and the saturation-aware guardrail (#8) are
+complementary: the scorer raises the load at which the gateway saturates, and the guardrail pauses instead of
+blaming the model when it does. The two "before" rollbacks had only timeout failures with the champion's p95 at
+220–313 ms, which is #8's pause condition; a load test of both together on merged code has not been run yet. The canary still costs about 2× per candidate request, because of
 the paired champion call. These are relative numbers from a loaded laptop, not capacity planning figures.
 
 ### LLM release lane (for AI Engineer reviewers)
@@ -518,7 +521,7 @@ cd web && npm test
 make ci          # everything CI's python + web jobs run
 ```
 
-Now: **89 Python tests** (`pytest --co`) and **7 web tests**; CI runs all of them on every pull request on 4
+Now: **99 Python tests** (`pytest --co`; 89 + 10 in `tests/test_fastscore.py`) and **7 web tests**; CI runs all of them on every pull request on 4
 pytest-xdist workers. An earlier local run, from before the 2026-11-10 merges (2026-11-09, on `b27bc04`, Apple M5 Pro
 under a load average of 13–17):
 **66 Python tests** (50 ML lane + 16 LLM lane) in 10 min: 65 passed. The one failure,

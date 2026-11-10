@@ -4,7 +4,8 @@
 
 The gateway now scores one row with [`fastscore.py`](../src/spectral_canary/fastscore.py): a scorer built at model
 load from the verified estimator that reproduces sklearn's `predict_proba` **bit for bit** (no retraining, no new
-artifact; see "Why the scores cannot change" below). Both runs below use the same commit (`4a930db`), the same
+artifact; see "Why the scores cannot change" below). Both runs below use the same commit (`4a930db`: the scorer on
+top of PR #7, before #8–#10 merged; the same scorer code is `6a463de` after the rebase onto main), the same
 machine and the same `make loadtest` (8 cells × 20 s, closed loop, 4,000 seeded **SIMULATED** payloads). The only
 difference is `SCW_FAST_SCORING=0` (the previous sklearn path) for the first run. Apple M5 Pro, 18 cores, 48 GB,
 macOS 27.0.1, Python 3.13.16, one uvicorn process, `OMP_NUM_THREADS=1`, 1-minute load average **6.3–9.0** from other
@@ -32,10 +33,16 @@ What changed, read from the reports and the per-cell registries:
   Python 3.13); compare the two columns of this table with each other, not with Run 1.
 - **Server CPU is no longer pinned at one core** in champion mode (81–89% at c ≥ 4). The closed-loop client runs
   on the same machine, so part of the remaining ceiling is the client, HTTP and the GIL rather than inference.
-- **Finding 5 did not fire.** On the old path the healthy v2 canary was rolled back in canary c=16 and c=32
-  ("candidate error rate 0.054 / 0.073 > budget 0.02": model calls queued past the 500 ms timeout). On the compiled
-  path the same cells ran 8 and 11 guardrail windows, all `healthy`, no rollback. That moves the saturation point;
-  it does not fix the logic, which is PR #8's job.
+- **Finding 5 did not fire, and the two fixes work together.** On the old path the healthy v2 canary was rolled
+  back in canary c=16 and c=32 ("candidate error rate 0.054 / 0.073 > budget 0.02": model calls queued past the
+  500 ms timeout). On the compiled path the same cells ran 8 and 11 guardrail windows, all `healthy`, no rollback.
+  The compiled scorer moves the saturation point up; the saturation-aware guardrail (PR #8, finding 5 below)
+  decides what happens once the gateway does saturate. This A/B ran before #8 merged, so its "before" column shows
+  the old verdict. Re-reading those two breach windows from the cells' registries against #8's rule: every
+  candidate failure was a timeout (8 of 8 and 10 of 10, no other errors) and the champion's own model-call p95 in
+  the same window was 220.5 ms and 312.9 ms, above the 100 ms `saturation_champion_p95_ms`, so on merged code both
+  windows would be `inconclusive_saturated` and the release would **pause** instead of rolling back. That is
+  derived from the recorded windows, not a new load-test run.
 
 Same commit, in process (no HTTP), `scripts/bench_scoring.py --story`
 ([`bench-scoring-20261110.json`](evidence/perf/bench-scoring-20261110.json), load average 4.8–5.8): one full
@@ -137,8 +144,10 @@ timeout, which returned a 503 with fail-closed semantics rather than a fabricate
    own calls were at 161–196 ms). Some candidate calls crossed the 500 ms timeout, the candidate error rate
    reached 2.9–6.4% (> the 2% budget), and the controller **rolled back a healthy v2**. The behavior is
    fail-safe (removing the canary also removes its extra paired-call load), but the postmortem would blame the
-   model for a capacity problem. **Status: fixed in code on 2026-11-09, verified by fault injection (chaos
-   `gateway_saturation` and four tests), load test not rerun yet.** The fix as recommended: a saturation-aware guardrail that, when
+   model for a capacity problem. **Status: fixed in code on 2026-11-09 (PR #8), verified by fault injection (chaos
+   `gateway_saturation` and four tests); the load test has not been rerun on merged code yet.** The compiled-scorer
+   A/B above shows both halves: the faster path stays healthy at c=16/c=32, and the old path's two rollbacks there
+   meet exactly #8's pause condition (all timeouts, champion p95 220–313 ms > 100 ms). The fix as recommended: a saturation-aware guardrail that, when
    the champion lane is also over its latency budget in the same window, records `inconclusive: gateway
    saturated` and **pauses** instead of rolling back.
 6. **Finding (fixed): request-level statistics on clustered traffic.** The first load test run

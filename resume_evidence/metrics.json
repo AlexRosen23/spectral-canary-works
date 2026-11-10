@@ -1,6 +1,6 @@
 {
   "generated_from": "scripts/build_evidence.py",
-  "head_commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
+  "head_commit": "62e182eb13bce060140d403b16f482472925f2a2",
   "note": "artifact paths under var/ are local, gitignored run outputs; regenerate with the listed command",
   "items": [
     {
@@ -215,276 +215,276 @@
       "note": "schema_break, distribution_shift, degraded_predictions, latency_spike, candidate_timeout, partial_outage, corrupted_artifact, repeat_rollback, restart_recovery, promotion_race"
     },
     {
-      "claim": "Load test champion @ concurrency 1 (closed loop, 20.0 s)",
+      "claim": "Load test champion @ concurrency 1 (closed loop, 20.01 s)",
       "value": {
-        "throughput_rps": 254.1,
+        "throughput_rps": 384.7,
         "latency_ms": {
-          "p50": 3.83,
-          "p95": 5.44,
-          "p99": 6.15,
-          "max": 13.2,
-          "mean": 3.93
+          "p50": 2.28,
+          "p95": 4.7,
+          "p99": 6.61,
+          "max": 65.35,
+          "mean": 2.59
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 63.5,
-        "server_rss_mb_max": 170.1,
-        "requests": 5082,
-        "load_avg_1m_before": 14.27
+        "server_cpu_percent_mean": 45.4,
+        "server_rss_mb_max": 183.0,
+        "requests": 7698,
+        "load_avg_1m_before": 7.87
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/champion-c1/raw-champion-c1.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/champion-c1/raw-champion-c1.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
-      "claim": "Load test champion @ concurrency 4 (closed loop, 20.01 s)",
+      "claim": "Load test champion @ concurrency 4 (closed loop, 20.02 s)",
       "value": {
-        "throughput_rps": 390.9,
+        "throughput_rps": 784.5,
         "latency_ms": {
-          "p50": 10.08,
-          "p95": 14.87,
-          "p99": 17.44,
-          "max": 54.99,
-          "mean": 10.22
+          "p50": 4.58,
+          "p95": 7.51,
+          "p99": 11.68,
+          "max": 223.28,
+          "mean": 5.09
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 106.5,
-        "server_rss_mb_max": 170.4,
-        "requests": 7821,
-        "load_avg_1m_before": 12.73
+        "server_cpu_percent_mean": 81.5,
+        "server_rss_mb_max": 184.1,
+        "requests": 15704,
+        "load_avg_1m_before": 7.96
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/champion-c4/raw-champion-c4.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/champion-c4/raw-champion-c4.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
       "claim": "Load test champion @ concurrency 16 (closed loop, 20.02 s)",
       "value": {
-        "throughput_rps": 374.0,
+        "throughput_rps": 865.5,
         "latency_ms": {
-          "p50": 27.08,
-          "p95": 120.78,
-          "p99": 195.95,
-          "max": 363.23,
-          "mean": 42.66
+          "p50": 17.18,
+          "p95": 34.06,
+          "p99": 44.45,
+          "max": 88.35,
+          "mean": 18.44
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 109.4,
-        "server_rss_mb_max": 173.6,
-        "requests": 7488,
-        "load_avg_1m_before": 12.71
+        "server_cpu_percent_mean": 80.9,
+        "server_rss_mb_max": 186.6,
+        "requests": 17325,
+        "load_avg_1m_before": 8.01
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/champion-c16/raw-champion-c16.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/champion-c16/raw-champion-c16.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
-      "claim": "Load test champion @ concurrency 32 (closed loop, 20.05 s)",
+      "claim": "Load test champion @ concurrency 32 (closed loop, 20.04 s)",
       "value": {
-        "throughput_rps": 365.9,
+        "throughput_rps": 764.9,
         "latency_ms": {
-          "p50": 72.73,
-          "p95": 166.52,
-          "p99": 237.8,
-          "max": 473.21,
-          "mean": 86.96
+          "p50": 39.49,
+          "p95": 58.28,
+          "p99": 78.28,
+          "max": 285.47,
+          "mean": 41.53
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 109.0,
-        "server_rss_mb_max": 177.8,
-        "requests": 7337,
-        "load_avg_1m_before": 15.76
+        "server_cpu_percent_mean": 89.1,
+        "server_rss_mb_max": 192.4,
+        "requests": 15331,
+        "load_avg_1m_before": 8.06
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/champion-c32/raw-champion-c32.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/champion-c32/raw-champion-c32.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
       "claim": "Load test canary @ concurrency 1 (closed loop, 20.02 s)",
       "value": {
-        "throughput_rps": 144.4,
+        "throughput_rps": 223.8,
         "latency_ms": {
-          "p50": 5.86,
-          "p95": 12.86,
-          "p99": 17.15,
-          "max": 183.33,
-          "mean": 6.92
+          "p50": 3.96,
+          "p95": 6.41,
+          "p99": 16.95,
+          "max": 248.76,
+          "mean": 4.46
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 62.3,
-        "server_rss_mb_max": 185.7,
-        "requests": 2890,
-        "load_avg_1m_before": 16.12
+        "server_cpu_percent_mean": 47.4,
+        "server_rss_mb_max": 199.8,
+        "requests": 4480,
+        "load_avg_1m_before": 7.76
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/canary-c1/raw-canary-c1.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/canary-c1/raw-canary-c1.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
       "claim": "Load test canary @ concurrency 4 (closed loop, 20.02 s)",
       "value": {
-        "throughput_rps": 186.9,
+        "throughput_rps": 598.5,
         "latency_ms": {
-          "p50": 18.46,
-          "p95": 43.57,
-          "p99": 58.15,
-          "max": 202.55,
-          "mean": 21.37
+          "p50": 6.05,
+          "p95": 9.5,
+          "p99": 12.53,
+          "max": 215.02,
+          "mean": 6.67
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 92.3,
-        "server_rss_mb_max": 181.4,
-        "requests": 3742,
-        "load_avg_1m_before": 17.71
+        "server_cpu_percent_mean": 91.3,
+        "server_rss_mb_max": 223.4,
+        "requests": 11982,
+        "load_avg_1m_before": 8.24
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/canary-c4/raw-canary-c4.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/canary-c4/raw-canary-c4.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
       "claim": "Load test canary @ concurrency 16 (closed loop, 20.03 s)",
       "value": {
-        "throughput_rps": 270.1,
+        "throughput_rps": 594.9,
         "latency_ms": {
-          "p50": 34.63,
-          "p95": 174.48,
-          "p99": 346.16,
-          "max": 680.67,
-          "mean": 58.99
+          "p50": 24.36,
+          "p95": 35.29,
+          "p99": 104.01,
+          "max": 211.09,
+          "mean": 26.79
         },
         "availability": 1.0,
-        "server_cpu_percent_mean": 100.0,
-        "server_rss_mb_max": 182.0,
-        "requests": 5411,
-        "load_avg_1m_before": 20.34
+        "server_cpu_percent_mean": 99.5,
+        "server_rss_mb_max": 215.2,
+        "requests": 11915,
+        "load_avg_1m_before": 7.8
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/canary-c16/raw-canary-c16.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/canary-c16/raw-canary-c16.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
-      "claim": "Load test canary @ concurrency 32 (closed loop, 20.08 s)",
+      "claim": "Load test canary @ concurrency 32 (closed loop, 20.03 s)",
       "value": {
-        "throughput_rps": 288.5,
+        "throughput_rps": 768.7,
         "latency_ms": {
-          "p50": 81.97,
-          "p95": 258.66,
-          "p99": 483.58,
-          "max": 763.04,
-          "mean": 110.27
+          "p50": 36.53,
+          "p95": 54.17,
+          "p99": 198.07,
+          "max": 299.04,
+          "mean": 41.31
         },
-        "availability": 0.99983,
-        "server_cpu_percent_mean": 110.2,
-        "server_rss_mb_max": 204.4,
-        "requests": 5792,
-        "load_avg_1m_before": 25.77
+        "availability": 1.0,
+        "server_cpu_percent_mean": 108.8,
+        "server_rss_mb_max": 222.4,
+        "requests": 15400,
+        "load_avg_1m_before": 6.85
       },
       "unit": "rps / ms / ratio",
-      "command": "scw loadtest --cmd loadtest --port 5130 --concurrency [1, 4, 16, 32] --duration 20.0 --mode ['champion', 'canary']",
-      "artifact": "var/runs/loadtest-20261109-001009/canary-c32/raw-canary-c32.jsonl",
-      "commit": "f01561016adf22d80e868ddba18aea05bdecff2f",
-      "source": "loadtest run loadtest-20261109-001009",
+      "command": "scw loadtest",
+      "artifact": "var/runs/loadtest-20261109-235207/canary-c32/raw-canary-c32.jsonl",
+      "commit": "4a930dbf763e30ceaad9cbe8063b88dd4bf67521",
+      "source": "loadtest run loadtest-20261109-235207",
       "status": "verified",
       "environment": {
-        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "machine": "arm64",
-        "python": "3.12.15",
+        "python": "3.13.16",
         "cpu_count": 18,
         "ram_gb": 48.0,
         "cpu": "Apple M5 Pro",
-        "load_avg_1m": 24.64
+        "load_avg_1m": 6.57
       },
-      "note": "single uvicorn process on a shared laptop; SIMULATED payloads"
+      "note": "single uvicorn process on a shared laptop; SIMULATED payloads; compiled single-row scorer (commit 4a930db, same code as 6a463de after the rebase onto main); same-machine baseline with SCW_FAST_SCORING=0: loadtest-20261109-234757; committed reports in docs/evidence/perf/"
     },
     {
       "claim": "AWS deployment",
