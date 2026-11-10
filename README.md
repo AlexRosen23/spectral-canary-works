@@ -145,7 +145,7 @@ GPU.
 make setup            # uv sync + npm ci; creates local operator tokens and a signing key in var/secrets (gitignored)
 make train-fixtures   # seeded dataset + v1..v4; fails if any hash differs from manifests/
 make eval             # held-out metrics table for every version
-make demo             # the whole release story over real HTTP on :5120, printing expected vs actual
+make demo             # the whole release story over real HTTP on its own gateway (:5150), printing expected vs actual
 make start            # gateway + built control room on http://127.0.0.1:5120 (what the Constellation launches)
 ```
 
@@ -173,9 +173,10 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | `make llm-demo` | the LLM lane story over real HTTP on :5141 with real local model calls (about 2 h on the build laptop when every suite runs live) |
 
 `make start` also trains, builds the UI and records an in-process demo run first, if any of those are
-missing. Both `make demo` and `make start` need a free port: if 5120 is taken, `make demo` refuses to start
-and the server in `make start` fails to bind. Use `API_PORT=<port>` (for example `make demo API_PORT=5151`)
-to run next to an existing gateway.
+missing. `make demo` starts and stops its own gateway on :5150, so it runs next to `make start` (:5120). If a
+port is taken, `make demo` refuses to start and `make start` fails to bind: use `DEMO_PORT=<port>` or
+`API_PORT=<port>`. `make start` honours `SCW_HOME` like the rest of the CLI. `scw demo --scale` below 0.67 is
+refused with a reason (the shadow phase would fall under the policy's 400-request minimum; it used to crash).
 
 ## How it works
 

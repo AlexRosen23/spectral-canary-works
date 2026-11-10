@@ -194,9 +194,18 @@ def cmd_demo(args: argparse.Namespace) -> int:
     from .auth import ensure_operators_file
     from .drivers import HttpDriver, InProcessDriver
     from .fixtures import fixture_runtime, new_run_dir, point_latest
+    from .policy import ReleasePolicy
     from .registry import verify_registry
     from .scenarios import release_story
 
+    shadow_min = ReleasePolicy.load().shadow.min_requests
+    if 600 * args.scale < shadow_min:  # the story's shadow phase sends 600 * scale requests
+        print(
+            f"[demo] --scale {args.scale} is too small: the shadow phase would send {int(600 * args.scale)} requests "
+            f"and the policy needs {shadow_min} before a canary (use --scale >= {shadow_min / 600:.2f})",
+            file=sys.stderr,
+        )
+        return 2
     paths = state_paths().ensure()
     run_dir = new_run_dir(paths, "demo")
     started = time.time()
@@ -365,7 +374,8 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_train)
     sub.add_parser("eval").set_defaults(fn=cmd_eval)
     p = sub.add_parser("demo")
-    p.add_argument("--port", type=int, default=int(os.environ.get("SCW_DEMO_PORT", "5120")))
+    # its own port: the demo starts and stops a throwaway gateway, so it must not collide with `make start` (5120)
+    p.add_argument("--port", type=int, default=int(os.environ.get("SCW_DEMO_PORT", "5150")))
     p.add_argument("--in-process", action="store_true", help="drive the runtime directly instead of HTTP")
     p.add_argument("--scale", type=float, default=1.0)
     p.set_defaults(fn=cmd_demo)
