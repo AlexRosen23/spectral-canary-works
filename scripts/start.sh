@@ -8,9 +8,10 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 PORT="${SCW_API_PORT:-5120}"
 UV="$(command -v uv || echo "$HOME/.local/bin/uv")"
 [ -x .venv/bin/python ] || "$UV" sync --frozen
-[ -f var/artifacts/v4-hgb-segfilter/manifest.json ] || .venv/bin/python -m spectral_canary.cli train-fixtures
+STATE="${SCW_HOME:-var}"  # the same state directory the Python side uses (src/spectral_canary/paths.py)
+[ -f "$STATE/artifacts/v4-hgb-segfilter/manifest.json" ] || .venv/bin/python -m spectral_canary.cli train-fixtures
 if [ ! -f web/dist/index.html ] || [ -n "$(find web/src web/index.html web/vite.config.ts -newer web/dist/index.html 2>/dev/null | head -1)" ]; then
   (cd web && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
 fi
-[ -e var/runs/latest/registry.sqlite ] || .venv/bin/python -m spectral_canary.cli demo --in-process
+[ -e "$STATE/runs/latest/registry.sqlite" ] || .venv/bin/python -m spectral_canary.cli demo --in-process
 exec .venv/bin/python -m spectral_canary.cli serve --port "$PORT"

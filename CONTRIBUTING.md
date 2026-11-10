@@ -46,7 +46,7 @@ paste whole logs into PRs.
 | `SCW_HOME` | state directory (default `./var`) |
 | `SCW_DB` | registry DB to serve (default `var/runs/latest/registry.sqlite`) |
 | `SCW_ENABLE_CHAOS` | `1` enables the simulated fault endpoints (default off) |
-| `SCW_API_PORT`, `SCW_DEMO_PORT` | default 5120 |
+| `SCW_API_PORT`, `SCW_DEMO_PORT` | default 5120 (gateway, `make start`) and 5150 (`make demo`'s own gateway) |
 | `OMP_NUM_THREADS` | default 1 (see `serving.limit_native_threads`) |
 | `VITE_API_URL` | UI → gateway URL (default `http://127.0.0.1:5120`) |
 | `SCW_CONFIRM_BILLABLE` | must be `yes` for `scripts/aws_deploy.sh` to run |

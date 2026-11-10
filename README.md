@@ -112,7 +112,7 @@ rollbacks it drives are real executions of this code.
 | Atomic, idempotent, verified rollback + generated postmortem | Working | `tests/test_e2e.py` (in-process and over real HTTP); [`docs/INCIDENT_POSTMORTEM.md`](docs/INCIDENT_POSTMORTEM.md) |
 | Promotion with separation of duties (creator can't approve) | Working | recorded demo (self-approval refused with 403); API tests |
 | Restart recovery, stuck-release revert, approve-vs-rollback race | Working | `make chaos-replay`: `restart_recovery`, `promotion_race` |
-| Seeded chaos suite: 11 failure scenarios with expected outcomes | Working | `make chaos-replay`: 10/10 (rerun 2026-11-09); the 11th, `gateway_saturation`, added later the same day, passed with `latency_spike` and `candidate_timeout` |
+| Seeded chaos suite: 11 failure scenarios with expected outcomes | Working | `make chaos-replay`: 11/11 in a clean state directory on the merged code (2026-11-09 23:36 CST, 3 min 8 s); in CI each scenario is its own pytest test |
 | Feature drift (PSI) and score drift (Jensen–Shannon) | Working (alert only, by design) | chaos `distribution_shift`; `/v1/drift` |
 | HTTP load test with SLOs | Working (one loaded laptop) | `make loadtest`; [`docs/LOAD_TEST_RESULTS.md`](docs/LOAD_TEST_RESULTS.md) (2026-11-09, commit `f015610`) |
 | Control-room UI (release track, traffic, quality, incident replay, drift, compare, postmortem, registry, reproducibility) | Working, local | renders only recorded API data; 7 web unit tests (incl. a paused canary and a saturation pause); `npm run build` |
@@ -145,7 +145,7 @@ GPU.
 make setup            # uv sync + npm ci; creates local operator tokens and a signing key in var/secrets (gitignored)
 make train-fixtures   # seeded dataset + v1..v4; fails if any hash differs from manifests/
 make eval             # held-out metrics table for every version
-make demo             # the whole release story over real HTTP on :5120, printing expected vs actual
+make demo             # the whole release story over real HTTP on its own gateway (:5150), printing expected vs actual
 make start            # gateway + built control room on http://127.0.0.1:5120 (what the Constellation launches)
 ```
 
@@ -173,9 +173,10 @@ about 2.5 minutes. Each run writes a directory under `var/runs/` with a registry
 | `make llm-demo` | the LLM lane story over real HTTP on :5141 with real local model calls (about 2 h on the build laptop when every suite runs live) |
 
 `make start` also trains, builds the UI and records an in-process demo run first, if any of those are
-missing. Both `make demo` and `make start` need a free port: if 5120 is taken, `make demo` refuses to start
-and the server in `make start` fails to bind. Use `API_PORT=<port>` (for example `make demo API_PORT=5151`)
-to run next to an existing gateway.
+missing. `make demo` starts and stops its own gateway on :5150, so it runs next to `make start` (:5120). If a
+port is taken, `make demo` refuses to start and `make start` fails to bind: use `DEMO_PORT=<port>` or
+`API_PORT=<port>`. `make start` honours `SCW_HOME` like the rest of the CLI. `scw demo --scale` below 0.67 is
+refused with a reason (the shadow phase would fall under the policy's 400-request minimum; it used to crash).
 
 ## How it works
 
@@ -367,7 +368,8 @@ numbers. Same 65 vs 83 of 112, same p = 0.0015, 50/50 verified, 34-event chain i
 
 ### Chaos suite
 
-`make chaos-replay`, rerun 2026-11-09: 10/10 scenarios matched their expected outcomes. The scenarios are
+`make chaos-replay`, rerun in a clean state directory on the merged code (2026-11-09 23:36 CST): 11/11 scenarios
+matched their expected outcomes. The scenarios are
 schema break, distribution shift (drift alert, no traffic moved), degraded predictions, latency spike,
 candidate timeout (champion answers with `X-Fallback`), partial outage (fail closed 503), corrupted artifact
 (never becomes champion), repeat rollback (idempotent), restart recovery, and an approve-vs-rollback race.
@@ -508,7 +510,9 @@ cd web && npm test
 make ci          # everything CI's python + web jobs run
 ```
 
-Latest local run (2026-11-09, this branch rebased on `b27bc04`, Apple M5 Pro under a load average of 13–17):
+Now: **89 Python tests** (`pytest --co`) and **7 web tests**; CI runs all of them on every pull request on 4
+pytest-xdist workers. An earlier local run, from before the 2026-11-10 merges (2026-11-09, on `b27bc04`, Apple M5 Pro
+under a load average of 13–17):
 **66 Python tests** (50 ML lane + 16 LLM lane) in 10 min: 65 passed. The one failure,
 `test_rollback_over_real_http`, couldn't bind its port because an orphaned server from an interrupted earlier run held
 it. With that process stopped, it passed on rerun (138 s). Also: **5 web tests passed**, chaos replay

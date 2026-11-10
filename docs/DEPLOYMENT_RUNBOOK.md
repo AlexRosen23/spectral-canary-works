@@ -8,7 +8,7 @@ Four ways to run it, from least to most infrastructure. Only the first three hav
 ```bash
 make setup            # uv sync --frozen, local secrets, web npm ci
 make train-fixtures   # seeded dataset + v1..v4 (fails if hashes differ from manifests/)
-make demo             # recorded release story over real HTTP on :5120 (server started and stopped by the demo)
+make demo             # recorded release story over real HTTP on :5150 (server started and stopped by the demo)
 make serve            # gateway on 127.0.0.1:5120 serving the latest recorded run
 make web              # control room on 127.0.0.1:5121
 ```

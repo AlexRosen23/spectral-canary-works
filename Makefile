@@ -7,6 +7,7 @@ RUN := $(UV) run --frozen
 API_PORT ?= 5120
 WEB_PORT ?= 5121
 LLM_DEMO_PORT ?= 5141
+DEMO_PORT ?= 5150
 # promptfoo pass-rate threshold (percent) for `make llm-gate`. A case fails on an invalid reply or a missed
 # must-escalate alert (66 of the 150 test cases). Recorded champion triage-p2: escalation recall 0.8333 on the gold
 # test split (docs/evidence/llm/). Allowed recall = 0.8333 - 0.05 (the gate margin) -> 100 * (1 - (1 - 0.7833) * 66/150)
@@ -53,8 +54,8 @@ web:              ## control-room UI dev server on 127.0.0.1:$(WEB_PORT)
 web-build:
 	cd web && npm run build
 
-demo:             ## fixture state -> release v2 (promoted) -> v4 (blocked) -> v3 canary + SIMULATED shift -> rollback
-	$(RUN) scw demo --port $(API_PORT)
+demo:             ## v2 promoted, v4 blocked, v3 canary + SIMULATED shift -> rollback; its own gateway on :$(DEMO_PORT)
+	$(RUN) scw demo --port $(DEMO_PORT)
 
 chaos-replay:     ## every seeded failure scenario with expected outcomes
 	$(RUN) scw chaos-replay
