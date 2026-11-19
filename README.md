@@ -1,5 +1,7 @@
 # Spectral Canary Works
 
+**ML release reliability lab**
+
 Spectral Canary Works is a small, complete model-release system that runs on one laptop. Four real
 fraud-scoring models (scikit-learn, trained on a seeded synthetic dataset) move through registration, an
 offline gate, shadow scoring, a 10% sticky canary and promotion, behind a FastAPI gateway that serves real
