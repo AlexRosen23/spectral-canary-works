@@ -11,6 +11,19 @@ hash-chained audit log. A second lane puts an LLM component (a fraud-alert triag
 engineers and reviewers who want to see, and rerun, the engineering between "the model scores well" and "the
 model is safe to serve", with every number traceable to a recorded run.
 
+## What it does
+
+- **Releases models safely:** four fraud-scoring models go through registration, an offline gate, shadow scoring, a 10% canary and promotion behind a FastAPI gateway.
+- **Catches a bad model after it ships:** one candidate passes every offline check and then fails under a simulated shift in traffic; the controller detects it from labeled evidence and rolls back with one atomic pointer swap.
+- **Proves the recovery:** it confirms with real predictions that the rollback worked and writes a postmortem from its own hash-chained audit log.
+- **Treats an LLM like a model:** a fraud-alert triage prompt on a local `llama3.2:3b` goes through the same registry, canary, audit chain and rollback.
+
+**Who it is for:** engineers and reviewers who want to see, and rerun, what sits between "the model scores well" and "the model is safe to serve". Everything is local, the data is synthetic and traffic is a labeled simulation; nothing is deployed to any cloud.
+
+**How it works:** a release controller moves traffic between model versions in a registry, compares candidate and champion on the same paired traffic, and records every decision in an audit chain.
+
+**Try it:** `make setup && make demo` (the full ML release story over real HTTP), or `make start` for the UI and API on http://127.0.0.1:5120.
+
 ## At a glance
 
 | | |
