@@ -37,7 +37,7 @@ class FakeClock:
 def chaos_restart_recovery(paths: StatePaths, run_dir: Path) -> dict[str, Any]:
     """Process dies mid-canary. Restart within the stuck window resumes; after it, traffic is reverted."""
     clock = FakeClock()
-    rt = fixture_runtime(run_dir, clock=clock)
+    rt = fixture_runtime(run_dir, home=paths.home, clock=clock)
     d = InProcessDriver(rt)
     rid = _canary(d, "v2-hgb", run_dir.name)
     run_traffic(d, f"{run_dir.name}-c", [Phase(BASE, 700, 1101, "canary before crash")])
@@ -46,14 +46,14 @@ def chaos_restart_recovery(paths: StatePaths, run_dir: Path) -> dict[str, Any]:
     rt.close()  # simulated crash: no rollback, no cleanup of the pointer
 
     clock.advance(60)
-    rt2 = fixture_runtime(run_dir, clock=clock)
+    rt2 = fixture_runtime(run_dir, home=paths.home, clock=clock)
     actions_soon = rt2.controller.recover()
     resumed_state = _rel(rt2, rid)["state"]
     pending = rt2.controller._pending.get(rid)
     rt2.close()
 
     clock.advance(rt2.policy.canary.stuck_after_seconds + 1)
-    rt3 = fixture_runtime(run_dir, clock=clock)
+    rt3 = fixture_runtime(run_dir, home=paths.home, clock=clock)
     actions_late = rt3.controller.recover()
     rel = _rel(rt3, rid)
     dep = rt3.store.deployment()
@@ -104,7 +104,7 @@ def chaos_promotion_race(paths: StatePaths, run_dir: Path) -> dict[str, Any]:
     """Two operators act at once (approve vs rollback): exactly one pointer change wins."""
     import threading
 
-    rt = fixture_runtime(run_dir)
+    rt = fixture_runtime(run_dir, home=paths.home)
     d = InProcessDriver(rt)
     rid = _canary(d, "v2-hgb", run_dir.name)
     run_traffic(d, f"{run_dir.name}-c", [Phase(BASE, 6000, 1201, "canary")], seed=11)
@@ -193,7 +193,7 @@ def run_chaos(paths: StatePaths, only: list[str] | None = None) -> dict[str, Any
                 pol = ReleasePolicy.load()
                 if name in POLICY_OVERRIDES:
                     pol.canary = pol.canary.model_copy(update=POLICY_OVERRIDES[name])
-                rt = fixture_runtime(run_dir, policy=pol)
+                rt = fixture_runtime(run_dir, home=paths.home, policy=pol)
                 rt.controller.simulated_context = True
                 try:
                     res = CHAOS_SCENARIOS[name](InProcessDriver(rt), f"{root.name}-{name}")
