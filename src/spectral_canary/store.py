@@ -554,7 +554,6 @@ class Store:
         self,
         start_seq: int,
         release_id: str | None = None,
-        with_labels: bool = True,
         labels_as_of: float | None = None,
     ) -> list[dict[str, Any]]:
         """Requests after ``start_seq`` with their label, if one has arrived (``labels_as_of``: only labels that had

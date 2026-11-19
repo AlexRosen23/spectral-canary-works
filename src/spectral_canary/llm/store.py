@@ -124,7 +124,6 @@ class LLMStore(Store):
         self,
         start_seq: int,
         release_id: str | None = None,
-        with_labels: bool = True,
         labels_as_of: float | None = None,
     ) -> list[dict[str, Any]]:
         args: list[Any] = []
